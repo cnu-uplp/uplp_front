@@ -5,11 +5,19 @@ export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-sky-700 via-sky-600 to-cyan-500 text-white">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute -left-10 top-10 h-64 w-64 rounded-full bg-white blur-3xl" />
-          <div className="absolute right-0 bottom-0 h-72 w-72 rounded-full bg-cyan-200 blur-3xl" />
-        </div>
+      <section className="relative overflow-hidden text-white">
+        {/* 배경 영상 */}
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          src="/wave.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-hidden="true"
+        />
+        {/* 가독성을 위한 어두운 오버레이 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-900/70 via-sky-800/55 to-cyan-700/60" />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-6 px-6 py-28 text-center">
           <span className="rounded-full bg-white/15 px-4 py-1 text-sm font-medium tracking-wide">
             UPLP SWIMMING CLUB
