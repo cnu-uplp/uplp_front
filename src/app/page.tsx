@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AxolotlGame from "@/components/AxolotlGame";
 
 export default function Home() {
   return (
@@ -107,6 +108,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* 미니게임 */}
+      <AxolotlGame />
     </div>
   );
 }
