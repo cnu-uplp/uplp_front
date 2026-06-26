@@ -36,15 +36,15 @@ npm install
 
 ### 2. 환경 변수 설정
 
-`.env.example`을 복사해서 `.env.local`을 만들고, 필요한 값을 채워주세요.
+`.env.example`을 복사해서 `.env`를 만들고, 필요한 값을 채워주세요.
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 | 변수명 | 설명 |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | FastAPI 백엔드 서버 주소 (기본값: `http://localhost:8000`) |
+| `NEXT_PUBLIC_API_URL` | FastAPI 백엔드 서버 주소 (로컬: `http://localhost:8000`, 배포 시 실제 백엔드 주소로 변경) |
 
 ### 3. 개발 서버 실행
 
