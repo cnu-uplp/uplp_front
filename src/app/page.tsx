@@ -16,15 +16,14 @@ export default function Home() {
           playsInline
           aria-hidden="true"
         />
-        {/* 가독성을 위한 어두운 오버레이 */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-900/70 via-sky-800/55 to-cyan-700/60" />
+        {/* 가독성을 위한 연한 하늘색 오버레이 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/35 via-sky-300/25 to-cyan-300/30" />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-6 px-6 py-28 text-center">
           <span className="rounded-full bg-white/15 px-4 py-1 text-sm font-medium tracking-wide">
             UPLP SWIMMING CLUB
           </span>
           <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-            물살을 가르는 즐거움,<br />
-            함께 헤엄치는 사람들
+            안녕하세요. 우파루파입니다
           </h1>
           <p className="max-w-xl text-sky-50/90">
             UPLP 수영 동아리는 초보부터 마스터즈까지 누구나 환영합니다.
