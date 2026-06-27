@@ -9,7 +9,7 @@ export default function Home() {
         {/* 배경 영상 */}
         <video
           className="absolute inset-0 h-full w-full object-cover"
-          src="/wave.mp4"
+          src="/uplp.mp4"
           autoPlay
           loop
           muted
