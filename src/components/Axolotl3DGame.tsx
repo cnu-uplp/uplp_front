@@ -168,7 +168,7 @@ export default function Axolotl3DGame() {
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatBoxRef = useRef<HTMLDivElement>(null);
 
   const punch = useRef(0);
   const idRef = useRef(0);
@@ -191,8 +191,10 @@ export default function Axolotl3DGame() {
   }, [state, loaded]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // 페이지 전체가 아니라 채팅창 내부만 아래로 스크롤 (첫 렌더에서 페이지가 끌려가지 않게)
+    const box = chatBoxRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [messages, sending]);
 
   // 대화로 먹이 벌기 → 밥 던지기로 소비
   function throwFood() {
@@ -366,7 +368,10 @@ export default function Axolotl3DGame() {
             </p>
 
             {/* 채팅 로그 */}
-            <div className="mt-3 h-40 space-y-2 overflow-y-auto rounded-xl bg-sky-50 p-3 text-left">
+            <div
+              ref={chatBoxRef}
+              className="mt-3 h-40 space-y-2 overflow-y-auto rounded-xl bg-sky-50 p-3 text-left"
+            >
               {messages.map((m, i) => (
                 <div
                   key={i}
@@ -390,7 +395,6 @@ export default function Axolotl3DGame() {
                   </span>
                 </div>
               )}
-              <div ref={chatEndRef} />
             </div>
 
             {/* 입력창 */}
