@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AxolotlGame from "@/components/AxolotlGame";
+import Axolotl3DGame from "@/components/Axolotl3DGame";
 
 export default function Home() {
   return (
@@ -23,7 +24,7 @@ export default function Home() {
             UPLP SWIMMING CLUB
           </span>
           <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-            안녕하세요. 우파루파입니다
+            안녕하세요. 우피입니다
           </h1>
           <p className="max-w-xl text-sky-50/90">
             UPLP 수영 동아리는 초보부터 마스터즈까지 누구나 환영합니다.
@@ -116,8 +117,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 미니게임 */}
+      {/* 미니게임 (2D) */}
       <AxolotlGame />
+
+      {/* 미니게임 (3D) */}
+      <Axolotl3DGame />
     </div>
   );
 }
