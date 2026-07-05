@@ -64,3 +64,5 @@ npm run dev
 ## 배포
 
 [Vercel](https://vercel.com/new)을 통한 배포를 권장합니다.
+
+ㅇㅇㄹㅇㅇ
