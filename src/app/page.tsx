@@ -17,8 +17,8 @@ export default function Home() {
           playsInline
           aria-hidden="true"
         />
-        {/* 가독성을 위한 연한 하늘색 오버레이 */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/35 via-sky-300/25 to-cyan-300/30" />
+        {/* 가독성을 위한 어두운 오버레이 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-900/55 to-slate-950/70" />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-6 px-6 py-28 text-center">
           <span className="rounded-full bg-white/15 px-4 py-1 text-sm font-medium tracking-wide">
             UPLP SWIMMING CLUB
@@ -47,7 +47,7 @@ export default function Home() {
         </div>
         {/* wave divider */}
         <svg
-          className="relative block w-full text-sky-50"
+          className="relative block w-full text-slate-900"
           viewBox="0 0 1440 100"
           fill="currentColor"
           preserveAspectRatio="none"
@@ -57,9 +57,9 @@ export default function Home() {
       </section>
 
       {/* Highlights */}
-      <section className="bg-sky-50 px-6 py-20">
+      <section className="bg-slate-900 px-6 py-20">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-2xl font-bold text-sky-800">
+          <h2 className="text-center text-2xl font-bold text-sky-300">
             동아리 활동 한눈에 보기
           </h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-3">
@@ -82,11 +82,11 @@ export default function Home() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-sky-100"
+                className="rounded-2xl bg-slate-800 p-6 text-center shadow-sm ring-1 ring-slate-700"
               >
                 <div className="text-3xl">{item.icon}</div>
-                <h3 className="mt-3 font-semibold text-sky-800">{item.title}</h3>
-                <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
+                <h3 className="mt-3 font-semibold text-sky-300">{item.title}</h3>
+                <p className="mt-2 text-sm text-slate-400">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -94,8 +94,8 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="bg-white px-6 py-16">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-3xl bg-sky-700 px-8 py-12 text-center text-white">
+      <section className="bg-slate-950 px-6 py-16">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-3xl bg-sky-800 px-8 py-12 text-center text-white">
           <h2 className="text-2xl font-bold">다가오는 정기 시합, 함께 응원와요!</h2>
           <p className="text-sky-50/90">
             티켓 예매 및 공지사항은 아래 페이지에서 확인하세요.
