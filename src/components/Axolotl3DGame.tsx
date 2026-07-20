@@ -176,6 +176,26 @@ export default function Axolotl3DGame() {
 
   useEffect(() => setMounted(true), []);
 
+  // 3D 뷰가 화면에 들어올 때만 Canvas를 마운트한다.
+  // (초기 로드 시 화면 밖의 Canvas가 페이지를 자기 위치로 끌어당기는 현상 방지 + 성능)
+  const viewRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = viewRef.current;
+    if (!el) return;
+    const ob = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          ob.disconnect();
+        }
+      },
+      { rootMargin: "150px" }
+    );
+    ob.observe(el);
+    return () => ob.disconnect();
+  }, []);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -289,7 +309,7 @@ export default function Axolotl3DGame() {
   const progress = (state.xp / needed) * 100;
 
   return (
-    <section className="bg-gradient-to-b from-cyan-100 to-sky-200 px-6 py-20">
+    <section className="px-6 py-24">
       <div className="mx-auto max-w-lg text-center">
         <span className="rounded-full bg-sky-700/10 px-4 py-1 text-sm font-medium text-sky-700">
           3D MINI GAME
@@ -299,7 +319,7 @@ export default function Axolotl3DGame() {
           수영 얘기로 우피를 기쁘게 하면 먹이를 받아요 🏊
         </p>
 
-        <div className="mt-8 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200">
+        <div className="glass mt-8 overflow-hidden rounded-[1.75rem]">
           <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-2.5">
             <span className="h-3 w-3 rounded-full bg-red-400" />
             <span className="h-3 w-3 rounded-full bg-yellow-400" />
@@ -309,8 +329,11 @@ export default function Axolotl3DGame() {
 
           <div className="p-6">
             {/* 3D 뷰 */}
-            <div className="relative h-72 w-full overflow-hidden rounded-2xl bg-gradient-to-b from-sky-700 to-sky-900">
-              {mounted ? (
+            <div
+              ref={viewRef}
+              className="relative h-72 w-full overflow-hidden rounded-2xl bg-gradient-to-b from-sky-700 to-sky-900"
+            >
+              {mounted && inView ? (
                 <Canvas camera={{ position: [0, 0.3, 3.4], fov: 45 }} shadows>
                   <color attach="background" args={["#0e567a"]} />
                   <fog attach="fog" args={["#0e567a", 4, 13]} />

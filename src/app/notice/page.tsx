@@ -6,24 +6,27 @@ const NOTICES = [
 
 export default function NoticePage() {
   return (
-    <div className="flex flex-1 flex-col bg-sky-50/40">
-      <section className="bg-gradient-to-r from-sky-700 to-cyan-600 px-6 py-16 text-white">
-        <div className="mx-auto max-w-4xl text-center">
-          <h1 className="text-3xl font-bold">공지사항 / 일정</h1>
-          <p className="mt-3 text-sky-50/90">동아리의 새로운 소식을 확인하세요.</p>
+    <div className="flex flex-1 flex-col px-6 pb-24 pt-32">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight text-sky-900">
+            공지사항 / 일정
+          </h1>
+          <p className="mt-4 text-slate-600">동아리의 새로운 소식을 확인하세요.</p>
         </div>
-      </section>
 
-      <section className="mx-auto w-full max-w-3xl px-6 py-14">
-        <ul className="divide-y divide-sky-100 rounded-2xl bg-white shadow-sm ring-1 ring-sky-100">
+        <ul className="glass mt-12 divide-y divide-white/40 overflow-hidden rounded-3xl">
           {NOTICES.map((notice) => (
-            <li key={notice.title} className="flex items-center justify-between gap-4 px-6 py-4">
-              <span className="font-medium text-slate-700">{notice.title}</span>
-              <span className="shrink-0 text-sm text-slate-400">{notice.date}</span>
+            <li
+              key={notice.title}
+              className="flex items-center justify-between gap-4 px-6 py-5 transition-colors hover:bg-white/40"
+            >
+              <span className="font-medium text-slate-800">{notice.title}</span>
+              <span className="shrink-0 text-sm text-slate-500">{notice.date}</span>
             </li>
           ))}
         </ul>
-      </section>
+      </div>
     </div>
   );
 }

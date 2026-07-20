@@ -183,7 +183,7 @@ export default function AxolotlGame() {
   const progress = (state.xp / XP_PER_LEVEL) * 100;
 
   return (
-    <section className="bg-gradient-to-b from-sky-50 to-cyan-100 px-6 py-20">
+    <section className="px-6 py-24">
       <div className="mx-auto max-w-md text-center">
         <span className="rounded-full bg-sky-700/10 px-4 py-1 text-sm font-medium text-sky-700">
           MINI GAME
@@ -194,7 +194,7 @@ export default function AxolotlGame() {
         </p>
 
         {/* 윈도우 창 */}
-        <div className="mt-8 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200">
+        <div className="glass mt-8 overflow-hidden rounded-[1.75rem]">
           {/* 타이틀바 */}
           <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-2.5">
             <span className="h-3 w-3 rounded-full bg-red-400" />
