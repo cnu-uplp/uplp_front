@@ -1,8 +1,6 @@
-import Link from "next/link";
+import GlassCard from "@/components/GlassCard";
 import AxolotlGame from "@/components/AxolotlGame";
 import Axolotl3DGame from "@/components/Axolotl3DGame";
-import LiquidHero from "@/components/motion/LiquidHero";
-import TextReveal from "@/components/motion/TextReveal";
 import { Reveal } from "@/components/motion/Reveal";
 import About from "@/components/sections/About";
 import Gallery from "@/components/sections/Gallery";
@@ -17,79 +15,87 @@ import Footer from "@/components/sections/Footer";
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
-      {/* Hero — 처음 들어오면 화면 전체를 채운다 */}
-      <section className="relative flex min-h-[100svh] flex-col overflow-hidden text-white">
-        {/* 마우스를 따라 이미지가 물처럼 일렁이는 유체 왜곡 효과
-            (참조 Fuel과 동일한 2-필드 구조 + 동일 파라미터) */}
-        <LiquidHero
-          src="/pool.png"
-          cursorPower={1}
-          cursorSize={0.5}
-          distortionPower={0.8}
-          resolution={4}
-        />
-        {/* 이미지는 밝게 유지. 중앙 박스 그늘 없이, 화면 전폭에 걸친
-            아주 옅은 상·하단 그라데이션만(내비/경계용) — 물 위에 떠보이지 않는다. */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-950/28 via-transparent to-sky-950/22" />
-        {/* 글자 가독성은 글자를 감싸는 글로우(그림자)로만 확보 → 박스가 안 생긴다 */}
-        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-6 px-6 py-24 text-center [text-shadow:0_1px_2px_rgba(8,47,73,0.65),0_2px_12px_rgba(8,47,73,0.75),0_0_36px_rgba(8,47,73,0.6)]">
-          <Reveal delay={0.3} immediate>
-            <span className="inline-block rounded-full bg-white/15 px-4 py-1 text-sm font-medium tracking-wide">
-              UPLP SWIMMING CLUB
-            </span>
-          </Reveal>
-          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-            <TextReveal text="충남대학교 수영동아리 우파루파입니다" delay={0.4} stagger={0.08} immediate />
-          </h1>
-          <Reveal delay={0.8} immediate className="max-w-xl">
-            <p className="text-sky-50/90">
-              UPLP 수영 동아리는 초보부터 마스터즈까지 누구나 환영합니다.
-              정기 훈련, 친목 모임, 그리고 연 1회 정기 시합까지 함께해요.
-            </p>
-          </Reveal>
-          <Reveal delay={1} immediate>
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-              <Link
-                href="/ticket"
-                className="rounded-full bg-white px-6 py-3 font-semibold text-sky-700 shadow-lg transition hover:bg-sky-50"
-              >
-                티켓 예매하기
-              </Link>
-              <Link
-                href="/about"
-                className="rounded-full border border-white/60 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
-              >
-                동아리 소개 보기
-              </Link>
+      {/* Hero — 전역 물결 배경 위에 뜨는 인트로 (별도 파란 히어로 블록 없음) */}
+      <section className="relative flex min-h-svh snap-start flex-col justify-center overflow-hidden px-6 py-24 sm:px-10 lg:px-16">
+        {/* 왼쪽 큰 글자 — 흰색 계열 글자에 위 푸른빛 → 아래 핑크빛(우파루파 색감) 그라데이션.
+            색은 글자에만 들어가고 배경(뒤 전역 물결 사진)은 그대로 둔다. */}
+        <div className="relative w-full max-w-6xl">
+          <Reveal delay={0.2} immediate>
+            <div className="mb-7 flex items-center gap-3.5">
+              <span className="h-px w-10 bg-white/70 sm:w-16" />
+              <span className="text-[0.7rem] font-medium uppercase tracking-[0.34em] text-white/90 [text-shadow:0_1px_4px_rgba(8,47,73,0.6)] sm:text-xs">
+                Chungnam Nat&apos;l University · Swimming Club
+              </span>
             </div>
           </Reveal>
+
+          <Reveal delay={0.35} immediate>
+            <div className="relative -skew-x-6 [filter:drop-shadow(0_22px_38px_rgba(8,47,73,0.4))_drop-shadow(0_6px_16px_rgba(125,211,252,0.45))]">
+              {/* 뒤 입체 베이스: 아래로 살짝 오프셋된 진한 카피 → 글자 두께(3D)감 */}
+              <h1
+                aria-hidden
+                className="absolute inset-x-0 top-0 translate-y-[0.05em] font-black uppercase leading-[0.76] tracking-[-0.075em] text-sky-950/35 blur-[0.5px]"
+              >
+                <span className="block text-[23vw] sm:text-[18vw] lg:text-[13.5vw]">CNU</span>
+                <span className="block text-[23vw] sm:text-[18vw] lg:text-[13.5vw]">UPLP</span>
+              </h1>
+              {/* 앞 컬러면: 두 단어를 잇는 하나의 그라데이션 → CNU 파랑 / UPLP 분홍 */}
+              <h1 className="relative bg-gradient-to-b from-sky-300 via-white to-pink-300 bg-clip-text font-black uppercase leading-[0.76] tracking-[-0.075em] text-transparent [-webkit-background-clip:text] [-webkit-text-stroke:0.8px_rgba(255,255,255,0.35)]">
+                <span className="block text-[23vw] sm:text-[18vw] lg:text-[13.5vw]">CNU</span>
+                <span className="block text-[23vw] sm:text-[18vw] lg:text-[13.5vw]">UPLP</span>
+              </h1>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.6} immediate className="mt-7 max-w-xl">
+            <p className="text-base text-white [text-shadow:0_1px_2px_rgba(8,47,73,0.75),0_2px_12px_rgba(8,47,73,0.6)] sm:text-lg">
+              충남대학교 수영동아리 우파루파. 초보부터 마스터즈까지, 물살을 가르는 즐거움을 함께 나눠요.
+            </p>
+          </Reveal>
         </div>
-        {/* wave divider */}
-        <svg
-          className="relative z-10 block w-full text-sky-50"
-          viewBox="0 0 1440 100"
-          fill="currentColor"
-          preserveAspectRatio="none"
+
+        {/* 아래에 콘텐츠가 있음을 알리는 스크롤 유도 시그널 */}
+        <a
+          href="#explore"
+          aria-label="아래로 스크롤"
+          className="group absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 text-white/85 [text-shadow:0_1px_6px_rgba(8,47,73,0.75)] transition hover:text-white"
         >
-          <path d="M0,40 C240,90 480,0 720,40 C960,80 1200,10 1440,50 L1440,100 L0,100 Z" />
-        </svg>
+          <span className="text-[0.7rem] font-semibold tracking-[0.25em]">
+            SCROLL
+          </span>
+          <span className="flex h-9 w-9 animate-bounce items-center justify-center rounded-full border border-white/50 bg-white/10 backdrop-blur">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M6 9l6 6 6-6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </a>
       </section>
 
-      {/* Fuel 구조 차용: 소개 → 갤러리 → 프로그램 → 회비 → 후기 → 연혁 → 통계 → 미니게임 → FAQ → 푸터 */}
-      <About />
-      <Gallery />
-      <Programs />
-      <Pricing />
-      <Testimonials />
-      <Timeline />
-      <StatsBar />
+      {/* 스크롤 아래 콘텐츠: '엄청 투명한 유리' 카드로 콘텐츠 전체를 감싼다 (뒤 물결이 은은히 비침).
+          유리(backdrop-filter)가 조상이 되면 내부 fixed가 갇히므로, 미니게임 팝업은 body로 portal 처리됨. */}
+      <GlassCard id="explore">
+        {/* Fuel 구조 차용: 소개 → 갤러리 → 프로그램 → 회비 → 후기 → 연혁 → 통계 → 미니게임 → FAQ → 푸터 */}
+        <About />
+        <Gallery />
+        <Programs />
+        <Pricing />
+        <Testimonials />
+        <Timeline />
+        <StatsBar />
 
-      {/* 미니게임 (우리만의 특색) */}
-      <AxolotlGame />
-      <Axolotl3DGame />
+        {/* 미니게임 (우리만의 특색) */}
+        <AxolotlGame />
+        <Axolotl3DGame />
 
-      <FAQ />
-      <Footer />
+        <FAQ />
+        <Footer />
+      </GlassCard>
     </div>
   );
 }

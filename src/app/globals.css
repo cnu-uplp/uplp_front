@@ -14,10 +14,21 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* 부드러운 스크롤은 Lenis(SmoothScroll 컴포넌트)가 담당하므로
-   CSS scroll-behavior와 충돌하지 않도록 auto로 둔다. */
+/* 앵커(스크롤 유도 시그널 등) 이동을 부드럽게 */
 html {
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
+  /* 섹션 단위 스냅. mandatory로 확실히 걸리게 하되, 뷰포트보다 큰 섹션(미니게임 등)은
+     스펙상 스냅 영역이 snapport보다 커서 그 안에서는 자유 스크롤되어 갇히지 않는다. */
+  scroll-snap-type: y mandatory;
+  /* 섹션 pt(py-24=96px)가 네비 높이(~56px)보다 커서 제목이 가려지지 않으므로 별도 padding 불필요.
+     (padding을 주면 스냅 대상인 히어로가 상단에서 떠 보이므로 두지 않는다) */
+}
+
+/* 히어로 + 카드(#explore) 안의 각 섹션을 스냅 지점으로.
+   히어로도 스냅 대상이어야 mandatory에서 로드 시 첫 섹션으로 튕기지 않는다. */
+#explore > section,
+#explore > footer {
+  scroll-snap-align: start;
 }
 
 body {
@@ -37,11 +48,19 @@ body {
   background-size: cover;
 }
 
+/* 전역 물결 배경 위에 뜬 섹션 제목(어두운 글자)이 읽히도록 옅은 흰 후광.
+   글래스 카드 안이나 흰 글자 제목에선 사실상 영향이 없다. (히어로 h1은 제외) */
+section h2,
+section h3 {
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+}
+
 /* ── Apple 스타일 프로스티드 글래스 ─────────────────────────── */
 .glass {
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(32px) saturate(220%);
-  -webkit-backdrop-filter: blur(32px) saturate(220%);
+  /* 표준 backdrop-filter만 작성 → Lightning CSS가 -webkit- 프리픽스를 자동 추가.
+     (직접 -webkit-까지 쓰면 컴파일러가 표준 속성을 dedupe로 떨궈 Chrome에서 블러가 안 먹었음) */
+  backdrop-filter: blur(56px) saturate(220%);
   border: 1px solid rgba(255, 255, 255, 0.35);
   box-shadow:
     0 8px 32px rgba(15, 23, 42, 0.08),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const STORAGE_KEY = "uplp-axolotl-game";
 const XP_PER_LEVEL = 10;
@@ -286,8 +287,9 @@ export default function AxolotlGame() {
         </div>
       </div>
 
-      {/* 퀴즈 모달 */}
-      {quizOpen && quiz && (
+      {/* 퀴즈 모달 — 콘텐츠를 감싼 유리(backdrop-filter) 안에 두면 fixed가 갇히므로
+          body로 portal 하여 항상 화면 전체를 덮게 한다. */}
+      {quizOpen && quiz && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-2xl">
             <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-2.5">
@@ -359,7 +361,8 @@ export default function AxolotlGame() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

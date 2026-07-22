@@ -69,13 +69,15 @@ export default function Navbar() {
         solid ? "glass-thin py-2.5" : "bg-transparent py-4"
       }`}
     >
-      {/* 홈 최상단(투명): 이미지는 밝게 두고, 아주 옅은 상단 그늘 + 글자 그림자로만 가독성 확보 */}
+      {/* 홈 최상단(투명): 밝은 물 사진에 글자가 묻히지 않도록 상단 그늘 + 진한 글자 그림자 */}
       {light && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-24 bg-gradient-to-b from-sky-950/25 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-28 bg-gradient-to-b from-sky-950/60 via-sky-950/25 to-transparent" />
       )}
       <nav
         className={`mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 ${
-          light ? "[text-shadow:0_1px_10px_rgba(8,47,73,0.5)]" : ""
+          light
+            ? "[text-shadow:0_1px_2px_rgba(8,47,73,0.9),0_2px_12px_rgba(8,47,73,0.7)]"
+            : ""
         }`}
       >
         {/* 로고 */}
@@ -99,7 +101,7 @@ export default function Navbar() {
         {/* 메뉴 — 홈·동아리 소개·공지/일정은 모바일에서도 노출, 티케팅은 데스크톱만 */}
         <ul
           className={`flex items-center gap-3 text-xs font-medium sm:gap-7 sm:text-sm ${
-            light ? "text-white/90" : "text-slate-600"
+            light ? "text-white" : "text-slate-600"
           }`}
         >
           {PRIMARY_ITEMS.map((item) => (

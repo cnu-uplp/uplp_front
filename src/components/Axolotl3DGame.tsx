@@ -54,8 +54,11 @@ function Model({ punch }: { punch: React.RefObject<number> }) {
     group.current.scale.setScalar(s);
   });
 
+  // GLB 기본 방향이 우측(+X)을 봐서, group을 Y축으로 좌로 90° 돌려 정면(카메라 쪽)을 보게 함.
+  // 살짝 안 맞으면 rotation의 이 각도만 조절 — 덜 돌리려면 -Math.PI/3처럼 값을 줄이고,
+  // 혹시 뒤통수를 보이면 부호를 +Math.PI/2로 바꾼다.
   return (
-    <group ref={group} position={[0, -0.4, 0]}>
+    <group ref={group} position={[0, -0.4, 0]} rotation={[0, -Math.PI / 2, 0]}>
       <primitive
         object={cloned}
         position={[-fit.center.x, -fit.center.y, -fit.center.z]}
