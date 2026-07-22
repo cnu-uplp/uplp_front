@@ -14,8 +14,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* 부드러운 스크롤은 Lenis(SmoothScroll 컴포넌트)가 담당하므로
+   CSS scroll-behavior와 충돌하지 않도록 auto로 둔다. */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 body {
@@ -37,22 +39,25 @@ body {
 
 /* ── Apple 스타일 프로스티드 글래스 ─────────────────────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(32px) saturate(220%);
+  -webkit-backdrop-filter: blur(32px) saturate(220%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   box-shadow:
-    0 8px 30px rgba(15, 23, 42, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 8px 32px rgba(15, 23, 42, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* 살짝 더 투명한 버전 (네비게이션 등) */
 .glass-thin {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(34px) saturate(210%);
+  -webkit-backdrop-filter: blur(34px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.75);
 }
 
 /* 어두운 배경(영상·컬러) 위에 얹는 유리 */
@@ -64,6 +69,89 @@ body {
   box-shadow:
     0 8px 30px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* ── 등장 애니메이션 (Framer 템플릿의 이징/타이밍 그대로) ───────── */
+@keyframes reveal-up {
+  from {
+    opacity: 0.001;
+    transform: translateY(var(--reveal-y, 10px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes text-up {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* 재생 전 초기 상태 (스크롤 트리거 대기 중) */
+.reveal-init {
+  opacity: 0.001;
+  transform: translateY(var(--reveal-y, 10px));
+}
+.text-init {
+  transform: translateY(110%);
+}
+
+/* 재생 — animation-fill-mode: both 로 시작/종료 상태를 유지 */
+.reveal-play {
+  animation: reveal-up 0.5s cubic-bezier(0.44, 0, 0.34, 0.98) both;
+  animation-delay: var(--reveal-delay, 0s);
+}
+.text-play {
+  animation: text-up 0.7s cubic-bezier(0.44, 0, 0.34, 0.98) both;
+  animation-delay: var(--reveal-delay, 0s);
+}
+
+/* 모션 최소화 설정이면 애니메이션 없이 즉시 표시 */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-init,
+  .text-init,
+  .reveal-play,
+  .text-play {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ── 마우스 리플(물결) 효과 ─────────────────────────────── */
+.cursor-ripple {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(56, 189, 248, 0.5);
+  pointer-events: none;
+  z-index: 9998;
+  will-change: transform, opacity;
+  animation: cursor-ripple 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes cursor-ripple {
+  from {
+    transform: translate(var(--rx), var(--ry)) scale(0.3);
+    opacity: 0.55;
+  }
+  to {
+    transform: translate(var(--rx), var(--ry)) scale(6);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cursor-ripple {
+    display: none;
+  }
 }
 
 /* 유리 카드 호버 인터랙션 */
