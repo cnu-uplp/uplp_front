@@ -178,12 +178,20 @@ export default function LiquidHero({
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const wrap = wrapRef.current;
-    if (!canvas || !wrap) return;
+    const canvasEl = canvasRef.current;
+    const wrapEl = wrapRef.current;
+    if (!canvasEl || !wrapEl) return;
+    // non-null 타입으로 못박아 중첩 함수(closure) 안에서도 null 경고가 안 나게 한다
+    const canvas: HTMLCanvasElement = canvasEl;
+    const wrap: HTMLDivElement = wrapEl;
 
-    const gl = canvas.getContext("webgl", { alpha: true, antialias: false });
-    if (!gl) return;
+    const glOrNull = canvas.getContext("webgl", {
+      alpha: true,
+      antialias: false,
+    });
+    if (!glOrNull) return;
+    // non-null 타입으로 못박아 중첩 함수(closure) 안에서도 null 경고가 안 나게 한다
+    const gl: WebGLRenderingContext = glOrNull;
 
     // 부동소수 텍스처 (없으면 조용히 종료 — 정적 이미지가 대신 보임)
     const halfExt = gl.getExtension("OES_texture_half_float");
