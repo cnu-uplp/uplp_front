@@ -151,7 +151,8 @@ const DISPLAY_FRAG = `
     vec2 s = vec2(1.0);
     if (u_ratio > u_img_ratio) s.y = u_img_ratio / u_ratio;
     else s.x = u_ratio / u_img_ratio;
-    return (uv - 0.5) * s + 0.5;
+    s *= 0.82;                             // 살짝 확대해 밋밋한 가장자리를 크롭
+    return (uv - 0.5) * s + vec2(0.5, 0.44); // 세로 초점을 살짝 아래로(윗부분 밋밋한 물 회피)
   }
   void main () {
     vec2 vel = texture2D(u_velocity, vUv).xy;
@@ -546,6 +547,9 @@ export default function LiquidHero({
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          // WebGL cover 매핑과 초점을 맞춰 세로 화면에서 밋밋한 윗부분을 크롭
+          objectPosition: "50% 62%",
+          transform: "scale(1.12)",
         }}
       />
       <canvas
