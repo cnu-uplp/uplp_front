@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AxolotlGame from "@/components/AxolotlGame";
 import Axolotl3DGame from "@/components/Axolotl3DGame";
+import LiquidHero from "@/components/motion/LiquidHero";
 import TextReveal from "@/components/motion/TextReveal";
 import { Reveal } from "@/components/motion/Reveal";
 import About from "@/components/sections/About";
@@ -16,19 +17,21 @@ import Footer from "@/components/sections/Footer";
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
-      {/* Hero */}
-      <section className="relative overflow-hidden text-white">
-        <video
-          className="absolute inset-0 h-full w-full object-cover"
-          src="/uplp.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
+      {/* Hero — 처음 들어오면 화면 전체를 채운다 */}
+      <section className="relative flex min-h-[100svh] flex-col overflow-hidden text-white">
+        {/* 마우스를 따라 이미지가 물처럼 일렁이는 유체 왜곡 효과 */}
+        <LiquidHero
+          src="/pool.png"
+          cursorPower={0.3}
+          cursorSize={0.5}
+          distortionPower={0.2}
+          resolution={4}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/35 via-sky-300/25 to-cyan-300/30" />
-        <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-6 px-6 py-28 text-center">
+        {/* 이미지는 밝게 유지. 중앙 박스 그늘 없이, 화면 전폭에 걸친
+            아주 옅은 상·하단 그라데이션만(내비/경계용) — 물 위에 떠보이지 않는다. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-950/28 via-transparent to-sky-950/22" />
+        {/* 글자 가독성은 글자를 감싸는 글로우(그림자)로만 확보 → 박스가 안 생긴다 */}
+        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-6 px-6 py-24 text-center [text-shadow:0_1px_2px_rgba(8,47,73,0.65),0_2px_12px_rgba(8,47,73,0.75),0_0_36px_rgba(8,47,73,0.6)]">
           <Reveal delay={0.3} immediate>
             <span className="inline-block rounded-full bg-white/15 px-4 py-1 text-sm font-medium tracking-wide">
               UPLP SWIMMING CLUB
@@ -62,7 +65,7 @@ export default function Home() {
         </div>
         {/* wave divider */}
         <svg
-          className="relative block w-full text-sky-50"
+          className="relative z-10 block w-full text-sky-50"
           viewBox="0 0 1440 100"
           fill="currentColor"
           preserveAspectRatio="none"

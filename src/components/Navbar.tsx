@@ -36,7 +36,15 @@ export default function Navbar() {
         solid ? "glass-thin py-2.5" : "bg-transparent py-4"
       }`}
     >
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6">
+      {/* 홈 최상단(투명): 이미지는 밝게 두고, 아주 옅은 상단 그늘 + 글자 그림자로만 가독성 확보 */}
+      {light && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-24 bg-gradient-to-b from-sky-950/25 to-transparent" />
+      )}
+      <nav
+        className={`mx-auto flex max-w-6xl items-center justify-between px-6 ${
+          light ? "[text-shadow:0_1px_10px_rgba(8,47,73,0.5)]" : ""
+        }`}
+      >
         {/* 로고 */}
         <Link
           href="/"

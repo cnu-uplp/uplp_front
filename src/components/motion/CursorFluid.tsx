@@ -16,10 +16,10 @@ type Layer = {
 };
 
 const LAYERS: Layer[] = [
-  { size: 420, ease: 0.06, color: "56, 189, 248", blur: 60, opacity: 0.18 }, // 큰 웅덩이(가장 느림)
-  { size: 260, ease: 0.1, color: "34, 211, 238", blur: 40, opacity: 0.22 }, // 중간
-  { size: 140, ease: 0.16, color: "125, 211, 252", blur: 24, opacity: 0.28 }, // 안쪽
-  { size: 46, ease: 0.24, color: "255, 255, 255", blur: 6, opacity: 0.5 }, // 코어(가장 빠름)
+  { size: 220, ease: 0.06, color: "56, 189, 248", blur: 42, opacity: 0.1 }, // 큰 웅덩이(가장 느림)
+  { size: 150, ease: 0.1, color: "34, 211, 238", blur: 30, opacity: 0.13 }, // 중간
+  { size: 90, ease: 0.16, color: "125, 211, 252", blur: 18, opacity: 0.16 }, // 안쪽
+  { size: 34, ease: 0.24, color: "255, 255, 255", blur: 5, opacity: 0.35 }, // 코어(가장 빠름)
 ];
 
 export default function CursorFluid() {
