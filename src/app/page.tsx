@@ -19,12 +19,13 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       {/* Hero — 처음 들어오면 화면 전체를 채운다 */}
       <section className="relative flex min-h-[100svh] flex-col overflow-hidden text-white">
-        {/* 마우스를 따라 이미지가 물처럼 일렁이는 유체 왜곡 효과 */}
+        {/* 마우스를 따라 이미지가 물처럼 일렁이는 유체 왜곡 효과
+            (참조 Fuel과 동일한 2-필드 구조 + 동일 파라미터) */}
         <LiquidHero
           src="/pool.png"
-          cursorPower={0.3}
+          cursorPower={1}
           cursorSize={0.5}
-          distortionPower={0.2}
+          distortionPower={0.8}
           resolution={4}
         />
         {/* 이미지는 밝게 유지. 중앙 박스 그늘 없이, 화면 전폭에 걸친

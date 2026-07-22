@@ -5,10 +5,15 @@ import { useEffect, useRef } from "react";
 /**
  * 마우스를 따라 이미지가 물처럼 일렁이는 유체 왜곡(Liquid Hover) 효과.
  *
- * Fuel 템플릿에서 본 기법을 오픈소스 유체 시뮬레이션 알고리즘
- * (GPU Gems / Pavel Dobryakov 계열, MIT)을 바탕으로 자체 재구현한 것.
- * 커서 속도를 속도장(velocity)에 주입 → 발산/압력(Jacobi)/보정/이류(advection)
- * 단계를 GPU에서 매 프레임 풀어, 그 속도장으로 이미지 UV를 왜곡한다.
+ * 참조 Fuel 템플릿의 원본 LiquidHover 컴포넌트(Ksenia Kondrashova 계열 유체 시뮬)
+ * 거동을 1:1로 이식한 것. 두 필드를 유지한다:
+ *  - velocity: 커서 이동량(raw)을 그대로 주입한 속도장(흐름 방향)
+ *  - dye(offset): cursorPower 스칼라를 주입하고 속도장을 따라 8배 dt로 빠르게
+ *    흘려보내는 왜곡 "크기" 필드
+ * 왜곡 = distortionPower × normalize(velocity) × offset (×2회) → 방향은 속도장,
+ * 크기는 제한·감쇠하는 offset이 담당해 빠른 마우스에도 폭주하지 않는다.
+ * 단, 이미지는 히어로 전체를 채우도록 object-fit: cover 매핑을 쓴다(원본의 inner
+ * rectangle/알파 페이드 대신).
  */
 
 type Props = {
@@ -17,7 +22,7 @@ type Props = {
   resolution?: number;
   /** 커서가 만드는 소용돌이 크기 (0.1~1) */
   cursorSize?: number;
-  /** 속도 주입 세기 (0.1~1) */
+  /** 속도/왜곡 주입 세기 (0.1~1) */
   cursorPower?: number;
   /** 이미지 왜곡 강도 (0.1~1) */
   distortionPower?: number;
@@ -43,7 +48,7 @@ const BASE_VERT = `
   }
 `;
 
-// 커서 위치에 값(속도/추적)을 가우시안으로 주입
+// 커서 위치에 값(속도/offset)을 주입. 원본과 동일하게 pow(2, ...) 커널 사용.
 const SPLAT_FRAG = `
   precision highp float;
   precision highp sampler2D;
@@ -56,7 +61,7 @@ const SPLAT_FRAG = `
   void main () {
     vec2 p = vUv - u_point.xy;
     p.x *= u_ratio;
-    vec3 splat = 0.6 * exp(-dot(p, p) / u_size) * u_value;
+    vec3 splat = 0.6 * pow(2.0, -dot(p, p) / u_size) * u_value;
     vec3 base = texture2D(u_target, vUv).xyz;
     gl_FragColor = vec4(base + splat, 1.0);
   }
@@ -122,29 +127,44 @@ const GRADIENT_FRAG = `
   }
 `;
 
+// 이류(advection) — 원본과 동일한 수동 이중선형(bilerp) 샘플링.
 const ADVECTION_FRAG = `
   precision highp float;
   precision highp sampler2D;
   varying vec2 vUv;
-  uniform sampler2D u_velocity;
-  uniform sampler2D u_source;
+  uniform sampler2D u_velocity_texture;
+  uniform sampler2D u_input_texture;
   uniform vec2 u_texel;
+  uniform vec2 u_output_texel;
   uniform float u_dt;
   uniform float u_dissipation;
+  vec4 bilerp (sampler2D sam, vec2 uv, vec2 tsize) {
+    vec2 st = uv / tsize - 0.5;
+    vec2 iuv = floor(st);
+    vec2 fuv = fract(st);
+    vec4 a = texture2D(sam, (iuv + vec2(0.5, 0.5)) * tsize);
+    vec4 b = texture2D(sam, (iuv + vec2(1.5, 0.5)) * tsize);
+    vec4 c = texture2D(sam, (iuv + vec2(0.5, 1.5)) * tsize);
+    vec4 d = texture2D(sam, (iuv + vec2(1.5, 1.5)) * tsize);
+    return mix(mix(a, b, fuv.x), mix(c, d, fuv.x), fuv.y);
+  }
   void main () {
-    vec2 coord = vUv - u_dt * texture2D(u_velocity, vUv).xy * u_texel;
-    gl_FragColor = u_dissipation * texture2D(u_source, coord);
+    vec2 coord = vUv - u_dt * bilerp(u_velocity_texture, vUv, u_texel).xy * u_texel;
+    vec4 result = bilerp(u_input_texture, coord, u_output_texel);
+    gl_FragColor = u_dissipation * result;
   }
 `;
 
-// 속도장으로 이미지 UV를 밀어 왜곡하고 object-fit: cover로 매핑
+// 표시 — 방향(속도장) × 크기(offset)로 이미지 UV를 밀어 왜곡. 원본처럼 변위를 2회 적용.
+// 이미지는 히어로 전체를 채우도록 object-fit: cover 매핑.
 const DISPLAY_FRAG = `
   precision highp float;
   precision highp sampler2D;
   varying vec2 vUv;
-  uniform float u_ratio;      // 컨테이너 가로/세로
-  uniform float u_img_ratio;  // 이미지 가로/세로
-  uniform float u_disturb;
+  uniform float u_ratio;       // 컨테이너 가로/세로
+  uniform float u_img_ratio;   // 이미지 가로/세로
+  uniform float u_disturb;     // distortionPower
+  uniform sampler2D u_output_texture; // dye(offset), .r
   uniform sampler2D u_velocity;
   uniform sampler2D u_image;
   vec2 coverUv(vec2 uv) {
@@ -152,16 +172,16 @@ const DISPLAY_FRAG = `
     if (u_ratio > u_img_ratio) s.y = u_img_ratio / u_ratio;
     else s.x = u_ratio / u_img_ratio;
     s *= 0.82;                             // 살짝 확대해 밋밋한 가장자리를 크롭
-    return (uv - 0.5) * s + vec2(0.5, 0.44); // 세로 초점을 살짝 아래로(윗부분 밋밋한 물 회피)
+    return (uv - 0.5) * s + vec2(0.5, 0.44); // 세로 초점을 살짝 아래로
   }
   void main () {
+    float offset = texture2D(u_output_texture, vUv).r;
     vec2 vel = texture2D(u_velocity, vUv).xy;
-    float mag = length(vel);
+    vel += 0.001;
     vec2 uv = coverUv(vUv);
-    uv -= u_disturb * vel;
+    uv -= u_disturb * normalize(vel) * offset;
+    uv -= u_disturb * normalize(vel) * offset;
     vec3 col = texture2D(u_image, vec2(uv.x, 1.0 - uv.y)).rgb;
-    // 흐르는 곳에 살짝 하이라이트를 얹어 '물빛' 느낌
-    col += mag * 0.12;
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -170,7 +190,7 @@ export default function LiquidHero({
   src,
   resolution = 4,
   cursorSize = 0.5,
-  cursorPower = 0.9,
+  cursorPower = 1,
   distortionPower = 0.8,
   className,
 }: Props) {
@@ -191,7 +211,6 @@ export default function LiquidHero({
       antialias: false,
     });
     if (!glOrNull) return;
-    // non-null 타입으로 못박아 중첩 함수(closure) 안에서도 null 경고가 안 나게 한다
     const gl: WebGLRenderingContext = glOrNull;
 
     // 부동소수 텍스처 (없으면 조용히 종료 — 정적 이미지가 대신 보임)
@@ -208,10 +227,10 @@ export default function LiquidHero({
 
     gl.clearColor(0, 0, 0, 0);
 
-    // 파라미터 정규화 (원본 매핑 감각 반영)
+    // 파라미터 매핑 (원본과 동일)
     const cfg = {
-      cursorSize: 0.5 + ((cursorSize - 0.1) * 4.5) / 0.9,
-      cursorPower: 5 + ((cursorPower - 0.1) * 45) / 0.9,
+      cursorSize: 0.5 + ((cursorSize - 0.1) * (5 - 0.5)) / (1 - 0.1),
+      cursorPower: 5 + ((cursorPower - 0.1) * (50 - 5)) / (1 - 0.1),
       distortion: distortionPower,
     };
     const SUPERSAMPLE = 1.2; // 캔버스를 살짝 오버스캔해 가장자리 왜곡을 감춤
@@ -343,6 +362,7 @@ export default function LiquidHero({
     }
 
     let velocity: ReturnType<typeof createDoubleFBO>;
+    let dye: ReturnType<typeof createDoubleFBO>; // offset 필드(왜곡 크기)
     let divergenceFBO: FBO;
     let pressureFBO: ReturnType<typeof createDoubleFBO>;
 
@@ -367,11 +387,13 @@ export default function LiquidHero({
       canvas.style.width = `${w * SUPERSAMPLE}px`;
       canvas.style.height = `${h * SUPERSAMPLE}px`;
       const aspect = w / h;
-      const base = 128 + (resolution - 1) * (384 / 9);
+      // 원본과 동일: 해상도 배율 1~10 → 격자 128~512
+      const base = 128 + ((resolution - 1) * (512 - 128)) / 9;
       sim = { w: Math.round(base * aspect), h: Math.round(base) };
     }
     function initFBOs() {
       velocity = createDoubleFBO(sim.w, sim.h);
+      dye = createDoubleFBO(sim.w, sim.h);
       divergenceFBO = createFBO(sim.w, sim.h);
       pressureFBO = createDoubleFBO(sim.w, sim.h);
     }
@@ -440,30 +462,30 @@ export default function LiquidHero({
     resize();
     initFBOs();
 
-    // ── 시뮬레이션 루프 ─────────────────────────
+    // ── 시뮬레이션 루프 (원본 순서 그대로) ─────────────
     function step() {
       const dt = 1 / 60;
+      const aspect = wrap.clientWidth / Math.max(1, wrap.clientHeight);
 
       if (pointer.moved) {
         pointer.moved = false;
         const p = pointerUv();
         gl.useProgram(splat.program);
-        gl.uniform2f(splat.uniforms.u_texel, velocity.texelX, velocity.texelY);
-        gl.uniform1i(splat.uniforms.u_target, velocity.read().attach(1));
-        gl.uniform1f(
-          splat.uniforms.u_ratio,
-          wrap.clientWidth / Math.max(1, wrap.clientHeight),
-        );
+        gl.uniform1f(splat.uniforms.u_ratio, aspect);
         gl.uniform2f(splat.uniforms.u_point, p.u, p.v);
-        gl.uniform3f(
-          splat.uniforms.u_value,
-          pointer.dx * cfg.cursorPower * 0.001,
-          -pointer.dy * cfg.cursorPower * 0.001,
-          0,
-        );
         gl.uniform1f(splat.uniforms.u_size, cfg.cursorSize * 0.001);
+
+        // ① 속도장 주입 — 커서 이동량(raw)을 그대로 (흐름을 강하게)
+        gl.uniform1i(splat.uniforms.u_target, velocity.read().attach(1));
+        gl.uniform3f(splat.uniforms.u_value, pointer.dx, -pointer.dy, 0);
         blit(velocity.write());
         velocity.swap();
+
+        // ② dye(offset) 주입 — cursorPower 스칼라 (왜곡 크기)
+        gl.uniform1i(splat.uniforms.u_target, dye.read().attach(1));
+        gl.uniform3f(splat.uniforms.u_value, cfg.cursorPower * 0.001, 0, 0);
+        blit(dye.write());
+        dye.swap();
       }
 
       // divergence
@@ -472,7 +494,7 @@ export default function LiquidHero({
       gl.uniform1i(divergence.uniforms.u_velocity, velocity.read().attach(1));
       blit(divergenceFBO);
 
-      // pressure (Jacobi iteration)
+      // pressure (Jacobi ×16)
       gl.useProgram(pressure.program);
       gl.uniform2f(pressure.uniforms.u_texel, velocity.texelX, velocity.texelY);
       gl.uniform1i(pressure.uniforms.u_divergence, divergenceFBO.attach(1));
@@ -490,27 +512,47 @@ export default function LiquidHero({
       blit(velocity.write());
       velocity.swap();
 
-      // advection (속도가 스스로를 이동시키며 점점 감쇠)
+      // advection ① 속도장 (dt, 감쇠 0.97)
       gl.useProgram(advection.program);
       gl.uniform2f(advection.uniforms.u_texel, velocity.texelX, velocity.texelY);
-      gl.uniform1i(advection.uniforms.u_velocity, velocity.read().attach(1));
-      gl.uniform1i(advection.uniforms.u_source, velocity.read().attach(1));
+      gl.uniform2f(
+        advection.uniforms.u_output_texel,
+        velocity.texelX,
+        velocity.texelY,
+      );
+      gl.uniform1i(
+        advection.uniforms.u_velocity_texture,
+        velocity.read().attach(1),
+      );
+      gl.uniform1i(advection.uniforms.u_input_texture, velocity.read().attach(1));
       gl.uniform1f(advection.uniforms.u_dt, dt);
-      // 감쇠를 강하게(값↓) 하면 속도가 빨리 잦아들어 잔잔해진다
-      gl.uniform1f(advection.uniforms.u_dissipation, 0.94);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.97);
       blit(velocity.write());
       velocity.swap();
 
-      // display — 속도장으로 이미지 왜곡
+      // advection ② dye(offset) — 속도장 따라 8배 dt로 빠르게, 감쇠 0.98
+      gl.uniform2f(advection.uniforms.u_output_texel, dye.texelX, dye.texelY);
+      gl.uniform1i(
+        advection.uniforms.u_velocity_texture,
+        velocity.read().attach(1),
+      );
+      gl.uniform1i(advection.uniforms.u_input_texture, dye.read().attach(2));
+      gl.uniform1f(advection.uniforms.u_dt, 8 * dt);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.98);
+      blit(dye.write());
+      dye.swap();
+
+      // display — 방향(속도장) × 크기(dye)로 이미지 왜곡
       if (imageTex) {
         gl.useProgram(display.program);
-        gl.uniform1f(
-          display.uniforms.u_ratio,
-          wrap.clientWidth / Math.max(1, wrap.clientHeight),
-        );
+        gl.uniform1f(display.uniforms.u_ratio, aspect);
         gl.uniform1f(display.uniforms.u_img_ratio, imgRatio);
         gl.uniform1f(display.uniforms.u_disturb, cfg.distortion);
-        gl.uniform1i(display.uniforms.u_velocity, velocity.read().attach(1));
+        gl.uniform1i(display.uniforms.u_velocity, velocity.read().attach(2));
+        gl.uniform1i(
+          display.uniforms.u_output_texture,
+          dye.read().attach(1),
+        );
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, imageTex);
         gl.uniform1i(display.uniforms.u_image, 0);
