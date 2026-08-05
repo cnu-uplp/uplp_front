@@ -36,9 +36,9 @@ export default function RootLayout({
         <div className="fixed inset-0 -z-10">
           <LiquidHero
             src="/pool.png"
-            cursorPower={1}
+            cursorPower={0.55}
             cursorSize={0.5}
-            distortionPower={0.8}
+            distortionPower={0.5}
             resolution={4}
           />
         </div>
