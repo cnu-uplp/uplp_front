@@ -17,8 +17,8 @@ export default function LoginPage() {
       client_id: KAKAO_CLIENT_ID,
       redirect_uri: redirectUri,
       response_type: "code",
-      // 닉네임만 요청 (프로필 사진 제외). 이메일 등 필요해지면 "profile_nickname,account_email" 처럼 추가.
-      scope: "profile_nickname",
+      // scope는 지정하지 않는다 → 카카오 콘솔의 '동의항목' 설정을 그대로 따른다.
+      // (콘솔에 없는 항목을 코드가 요청하면 KOE 에러가 나므로 하드코딩하지 않음)
     });
     window.location.href = `${KAKAO_AUTH_URL}?${params.toString()}`;
   }
