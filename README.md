@@ -64,3 +64,11 @@ npm run dev
 ## 배포
 
 [Vercel](https://vercel.com/new)을 통한 배포를 권장합니다.
+
+## Credits
+
+마우스 물결 효과(`src/components/motion/LiquidHero.tsx`)는
+[WebGL-Fluid-Simulation](https://github.com/PavelDoGreat/WebGL-Fluid-Simulation)
+(© 2017 Pavel Dobryakov, MIT)을 기반으로 하며, 커서 왜곡 표현은
+[Ksenia Kondrashova의 CodePen](https://codepen.io/ksenia-k/pen/jENEMjN)(MIT)을
+참고해 재구현했습니다. 전체 라이선스 전문은 [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt) 참고.

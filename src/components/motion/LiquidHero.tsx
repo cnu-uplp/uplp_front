@@ -1,3 +1,10 @@
+/*!
+ * Fluid simulation based on WebGL-Fluid-Simulation.
+ * Copyright (c) 2017 Pavel Dobryakov — MIT License.
+ * https://github.com/PavelDoGreat/WebGL-Fluid-Simulation
+ * Cursor distortion adaptation after Ksenia Kondrashova (public CodePen, MIT).
+ * See THIRD-PARTY-NOTICES.txt for the full license text.
+ */
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -5,15 +12,14 @@ import { useEffect, useRef } from "react";
 /**
  * 마우스를 따라 이미지가 물처럼 일렁이는 유체 왜곡(Liquid Hover) 효과.
  *
- * 참조 Fuel 템플릿의 원본 LiquidHover 컴포넌트(Ksenia Kondrashova 계열 유체 시뮬)
- * 거동을 1:1로 이식한 것. 두 필드를 유지한다:
+ * Pavel Dobryakov의 WebGL 유체 시뮬레이션(MIT)을 기반으로 커서 왜곡 표현을
+ * 두 필드 구조로 재구현한 것. 두 필드를 유지한다:
  *  - velocity: 커서 이동량(raw)을 그대로 주입한 속도장(흐름 방향)
  *  - dye(offset): cursorPower 스칼라를 주입하고 속도장을 따라 8배 dt로 빠르게
  *    흘려보내는 왜곡 "크기" 필드
  * 왜곡 = distortionPower × normalize(velocity) × offset (×2회) → 방향은 속도장,
  * 크기는 제한·감쇠하는 offset이 담당해 빠른 마우스에도 폭주하지 않는다.
- * 단, 이미지는 히어로 전체를 채우도록 object-fit: cover 매핑을 쓴다(원본의 inner
- * rectangle/알파 페이드 대신).
+ * 이미지는 히어로 전체를 채우도록 object-fit: cover 매핑을 쓴다.
  */
 
 type Props = {
@@ -526,7 +532,7 @@ export default function LiquidHero({
       );
       gl.uniform1i(advection.uniforms.u_input_texture, velocity.read().attach(1));
       gl.uniform1f(advection.uniforms.u_dt, dt);
-      gl.uniform1f(advection.uniforms.u_dissipation, 0.97);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.94);
       blit(velocity.write());
       velocity.swap();
 
@@ -537,8 +543,8 @@ export default function LiquidHero({
         velocity.read().attach(1),
       );
       gl.uniform1i(advection.uniforms.u_input_texture, dye.read().attach(2));
-      gl.uniform1f(advection.uniforms.u_dt, 8 * dt);
-      gl.uniform1f(advection.uniforms.u_dissipation, 0.98);
+      gl.uniform1f(advection.uniforms.u_dt, 5 * dt);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.95);
       blit(dye.write());
       dye.swap();
 
