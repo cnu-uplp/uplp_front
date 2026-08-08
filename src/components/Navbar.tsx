@@ -5,7 +5,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 type SessionUser = { nickname?: string; name?: string };
+
+// 임원진 이상만 보이는 메뉴. 노출 여부는 서버(/api/users/me)의 role로 판정한다
+// — localStorage는 사용자가 고칠 수 있으므로 신뢰하지 않는다.
+// (설령 메뉴를 억지로 띄워도 /api/users 가 403을 낸다.)
+const STAFF_ITEM = { href: "/members", label: "부원 관리" };
+const STAFF_ROLES = ["executive", "admin"];
 
 // 항상 상단바에 노출되는 메뉴 (모바일 포함)
 const PRIMARY_ITEMS = [
@@ -22,6 +30,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false); // 모바일 드로어 열림 여부
   const [user, setUser] = useState<SessionUser | null>(null); // 로그인 유저(없으면 null)
+  const [isStaff, setIsStaff] = useState(false); // 임원진 이상 여부 (서버 판정)
 
   // 로그인 상태 읽기 — 마운트 + 페이지 이동마다 (로그인 직후 홈으로 오면 인사 반영)
   useEffect(() => {
@@ -32,6 +41,29 @@ export default function Navbar() {
     } catch {
       setUser(null);
     }
+  }, [pathname]);
+
+  // 임원진 메뉴 노출 여부 — 서버에 직접 물어본다
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setIsStaff(false);
+      return;
+    }
+    let alive = true;
+    fetch(`${API_URL}/api/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((me) => {
+        if (alive) setIsStaff(STAFF_ROLES.includes(me?.role));
+      })
+      .catch(() => {
+        if (alive) setIsStaff(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [pathname]);
 
   function logout() {
@@ -146,6 +178,17 @@ export default function Navbar() {
               {TICKET_ITEM.label}
             </Link>
           </li>
+          {/* 부원 관리: 정기수영 옆 — 임원진 이상에게만 */}
+          {isStaff && (
+            <li className="hidden sm:block">
+              <Link
+                href={STAFF_ITEM.href}
+                className={itemClass(STAFF_ITEM.href, "transition-opacity")}
+              >
+                {STAFF_ITEM.label}
+              </Link>
+            </li>
+          )}
         </ul>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -157,7 +200,7 @@ export default function Navbar() {
                   light ? "text-white" : "text-sky-800"
                 }`}
               >
-                안녕하세요, {user.nickname ?? user.name ?? "회원"}님
+                안녕하세요, {user.name ?? user.nickname ?? "회원"}님
               </span>
               <button
                 type="button"
@@ -255,11 +298,26 @@ export default function Navbar() {
           {TICKET_ITEM.label}
         </Link>
 
+        {/* 부원 관리 — 임원진 이상에게만 */}
+        {isStaff && (
+          <Link
+            href={STAFF_ITEM.href}
+            onClick={() => setOpen(false)}
+            className={`rounded-xl px-4 py-3 text-base font-medium transition ${
+              pathname === STAFF_ITEM.href
+                ? "bg-sky-50 font-semibold text-sky-700"
+                : "text-slate-700 hover:bg-sky-50"
+            }`}
+          >
+            {STAFF_ITEM.label}
+          </Link>
+        )}
+
         {/* 로그인 상태 */}
         {user ? (
           <>
             <div className="mt-3 rounded-xl bg-sky-50 px-4 py-3 text-center text-sm font-semibold text-sky-800">
-              안녕하세요, {user.nickname ?? user.name ?? "회원"}님
+              안녕하세요, {user.name ?? user.nickname ?? "회원"}님
             </div>
             <button
               type="button"
