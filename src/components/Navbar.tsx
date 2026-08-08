@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+type SessionUser = { nickname?: string; name?: string };
 
 // 항상 상단바에 노출되는 메뉴 (모바일 포함)
 const PRIMARY_ITEMS = [
@@ -12,12 +14,33 @@ const PRIMARY_ITEMS = [
   { href: "/notice", label: "공지/일정" },
 ];
 // 데스크톱은 상단바, 모바일은 ≡ 드로어 안으로 들어가는 항목
-const TICKET_ITEM = { href: "/ticket", label: "티케팅" };
+const TICKET_ITEM = { href: "/ticket", label: "정기수영" };
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false); // 모바일 드로어 열림 여부
+  const [user, setUser] = useState<SessionUser | null>(null); // 로그인 유저(없으면 null)
+
+  // 로그인 상태 읽기 — 마운트 + 페이지 이동마다 (로그인 직후 홈으로 오면 인사 반영)
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const raw = localStorage.getItem("user");
+      setUser(token && raw ? (JSON.parse(raw) as SessionUser) : null);
+    } catch {
+      setUser(null);
+    }
+  }, [pathname]);
+
+  function logout() {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    setUser(null);
+    setOpen(false);
+    router.push("/");
+  }
 
   // 스크롤 위치에 따라 투명 ↔ 유리 배경 전환
   useEffect(() => {
@@ -126,17 +149,40 @@ export default function Navbar() {
         </ul>
 
         <div className="flex shrink-0 items-center gap-2">
-          {/* 로그인 — 데스크톱 상단바에만 (모바일은 드로어로) */}
-          <Link
-            href="/login"
-            className={`hidden rounded-full px-5 py-2 text-sm font-semibold transition sm:inline-flex ${
-              light
-                ? "bg-white/90 text-sky-700 hover:bg-white"
-                : "bg-sky-600 text-white hover:bg-sky-500"
-            }`}
-          >
-            로그인
-          </Link>
+          {/* 로그인 상태 — 데스크톱 상단바 (모바일은 드로어로) */}
+          {user ? (
+            <div className="hidden items-center gap-3 sm:flex">
+              <span
+                className={`text-sm font-semibold ${
+                  light ? "text-white" : "text-sky-800"
+                }`}
+              >
+                안녕하세요, {user.nickname ?? user.name ?? "회원"}님
+              </span>
+              <button
+                type="button"
+                onClick={logout}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  light
+                    ? "bg-white/20 text-white ring-1 ring-white/50 hover:bg-white/30"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className={`hidden rounded-full px-5 py-2 text-sm font-semibold transition sm:inline-flex ${
+                light
+                  ? "bg-white/90 text-sky-700 hover:bg-white"
+                  : "bg-sky-600 text-white hover:bg-sky-500"
+              }`}
+            >
+              로그인
+            </Link>
+          )}
 
           {/* 햄버거 — 모바일 전용 */}
           <button
@@ -209,14 +255,29 @@ export default function Navbar() {
           {TICKET_ITEM.label}
         </Link>
 
-        {/* 로그인 */}
-        <Link
-          href="/login"
-          onClick={() => setOpen(false)}
-          className="mt-3 rounded-full bg-sky-600 px-4 py-3 text-center text-base font-semibold text-white transition hover:bg-sky-500"
-        >
-          로그인
-        </Link>
+        {/* 로그인 상태 */}
+        {user ? (
+          <>
+            <div className="mt-3 rounded-xl bg-sky-50 px-4 py-3 text-center text-sm font-semibold text-sky-800">
+              안녕하세요, {user.nickname ?? user.name ?? "회원"}님
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-2 rounded-full bg-slate-100 px-4 py-3 text-center text-base font-semibold text-slate-600 transition hover:bg-slate-200"
+            >
+              로그아웃
+            </button>
+          </>
+        ) : (
+          <Link
+            href="/login"
+            onClick={() => setOpen(false)}
+            className="mt-3 rounded-full bg-sky-600 px-4 py-3 text-center text-base font-semibold text-white transition hover:bg-sky-500"
+          >
+            로그인
+          </Link>
+        )}
       </aside>
     </header>
   );

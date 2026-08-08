@@ -83,14 +83,14 @@ export default function Pricing() {
               </div>
 
               <Link
-                href="/signup"
+                href="/login"
                 className={`mt-5 rounded-full px-4 py-2.5 text-center text-sm font-semibold transition ${
                   plan.dark
                     ? "bg-white text-sky-700 hover:bg-sky-50"
                     : "bg-sky-600 text-white hover:bg-sky-500"
                 }`}
               >
-                가입하기
+                카카오로 시작하기
               </Link>
 
               <ul className="mt-6 space-y-2.5">

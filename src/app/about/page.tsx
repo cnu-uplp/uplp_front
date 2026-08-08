@@ -24,8 +24,8 @@ export default function AboutPage() {
               <div className="mt-10 flex justify-center">
 
                 <img
-                    src="/pink_lake.jpg"
-                    alt="죽음의 바다"
+                    src="/pool.png"
+                    alt="충남대 실내 수영장"
                     className="rounded-2xl shadow-lg max-w-full h-auto"
                 />
               </div>
