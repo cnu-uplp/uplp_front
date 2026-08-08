@@ -32,6 +32,13 @@ type Props = {
   cursorPower?: number;
   /** 이미지 왜곡 강도 (0.1~1) */
   distortionPower?: number;
+  /** 이미지 확대(크롭) 정도. 1이면 확대 없음, 작을수록 더 확대된다.
+   *  저해상도 원본은 1에 가깝게 둬야 덜 뭉개진다. */
+  zoom?: number;
+  /** "cover" = 화면을 꽉 채우고 크롭 (기본) / "contain" = 사진 전체가 보이게 (여백 생김) */
+  fit?: "cover" | "contain";
+  /** contain일 때 남는 여백 색 (#rrggbb) */
+  padColor?: string;
   className?: string;
 };
 
@@ -170,15 +177,26 @@ const DISPLAY_FRAG = `
   uniform float u_ratio;       // 컨테이너 가로/세로
   uniform float u_img_ratio;   // 이미지 가로/세로
   uniform float u_disturb;     // distortionPower
+  uniform float u_zoom;        // 이미지 확대(크롭) 정도
+  uniform float u_contain;     // 0 = cover(꽉 채움·크롭) / 1 = contain(사진 전체 보임)
+  uniform vec3 u_pad_color;    // contain일 때 남는 여백 색
   uniform sampler2D u_output_texture; // dye(offset), .r
   uniform sampler2D u_velocity;
   uniform sampler2D u_image;
   vec2 coverUv(vec2 uv) {
     vec2 s = vec2(1.0);
-    if (u_ratio > u_img_ratio) s.y = u_img_ratio / u_ratio;
-    else s.x = u_ratio / u_img_ratio;
-    s *= 0.82;                             // 살짝 확대해 밋밋한 가장자리를 크롭
-    return (uv - 0.5) * s + vec2(0.5, 0.44); // 세로 초점을 살짝 아래로
+    if (u_contain > 0.5) {
+      // contain: 사진이 잘리지 않게 전체를 담는다 (남는 쪽은 여백)
+      if (u_ratio > u_img_ratio) s.x = u_ratio / u_img_ratio;
+      else s.y = u_img_ratio / u_ratio;
+    } else {
+      // cover: 화면을 꽉 채우고 넘치는 부분은 잘라낸다
+      if (u_ratio > u_img_ratio) s.y = u_img_ratio / u_ratio;
+      else s.x = u_ratio / u_img_ratio;
+    }
+    s *= u_zoom;                           // 살짝 확대해 밋밋한 가장자리를 크롭 (1 = 확대 없음)
+    float cy = u_contain > 0.5 ? 0.5 : 0.44; // contain은 정중앙, cover는 초점을 살짝 아래로
+    return (uv - 0.5) * s + vec2(0.5, cy);
   }
   void main () {
     float offset = texture2D(u_output_texture, vUv).r;
@@ -188,6 +206,11 @@ const DISPLAY_FRAG = `
     uv -= u_disturb * normalize(vel) * offset;
     uv -= u_disturb * normalize(vel) * offset;
     vec3 col = texture2D(u_image, vec2(uv.x, 1.0 - uv.y)).rgb;
+    // contain 모드에서 이미지 밖 영역은 여백 색으로 (가장자리 늘어남 방지)
+    if (u_contain > 0.5) {
+      vec2 d = step(vec2(0.0), uv) * step(uv, vec2(1.0));
+      col = mix(u_pad_color, col, d.x * d.y);
+    }
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -198,6 +221,9 @@ export default function LiquidHero({
   cursorSize = 0.5,
   cursorPower = 1,
   distortionPower = 0.8,
+  zoom = 0.82,
+  fit = "cover",
+  padColor = "#eaf4ff",
   className,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -554,6 +580,14 @@ export default function LiquidHero({
         gl.uniform1f(display.uniforms.u_ratio, aspect);
         gl.uniform1f(display.uniforms.u_img_ratio, imgRatio);
         gl.uniform1f(display.uniforms.u_disturb, cfg.distortion);
+        gl.uniform1f(display.uniforms.u_zoom, zoom);
+        gl.uniform1f(display.uniforms.u_contain, fit === "contain" ? 1 : 0);
+        gl.uniform3f(
+          display.uniforms.u_pad_color,
+          parseInt(padColor.slice(1, 3), 16) / 255,
+          parseInt(padColor.slice(3, 5), 16) / 255,
+          parseInt(padColor.slice(5, 7), 16) / 255
+        );
         gl.uniform1i(display.uniforms.u_velocity, velocity.read().attach(2));
         gl.uniform1i(
           display.uniforms.u_output_texture,
@@ -576,7 +610,7 @@ export default function LiquidHero({
       window.removeEventListener("resize", onResize);
       ro.disconnect();
     };
-  }, [src, resolution, cursorSize, cursorPower, distortionPower]);
+  }, [src, resolution, cursorSize, cursorPower, distortionPower, zoom, fit, padColor]);
 
   return (
     <div
