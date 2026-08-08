@@ -123,7 +123,8 @@ export default function SwimPage() {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("18:00");
 
-  const isAdmin = me?.role === "admin";
+  // 임원진(executive)·관리자(admin) 둘 다 운영 도구를 쓴다. 서버도 같은 기준으로 검사한다.
+  const isAdmin = me?.role === "executive" || me?.role === "admin";
 
   const fetchSessions = useCallback(async () => {
     try {

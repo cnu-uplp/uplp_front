@@ -1,21 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
 // 카카오 REST API 키 (카카오 개발자 콘솔 > 앱 키 > REST API 키).
 // authorize URL에 노출되는 값이라 NEXT_PUBLIC_ 으로 둔다. (client secret 은 백엔드에만!)
 const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID ?? "";
 const KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize";
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
   function loginWithKakao() {
     if (!KAKAO_CLIENT_ID) {
       alert("카카오 로그인 설정(NEXT_PUBLIC_KAKAO_CLIENT_ID)이 필요합니다.");
@@ -33,40 +23,13 @@ export default function LoginPage() {
     window.location.href = `${KAKAO_AUTH_URL}?${params.toString()}`;
   }
 
-  // 관리자/개발용 아이디·비밀번호 로그인 (로컬 테스트용)
-  async function handleAdminLogin(e: React.FormEvent) {
-    e.preventDefault();
-    if (loading) return;
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "아이디 또는 비밀번호가 올바르지 않습니다.");
-      }
-      const data = await res.json(); // { accessToken, user }
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      router.push("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <div className="flex flex-1 items-center justify-center px-6 pb-24 pt-32">
       <div className="glass w-full max-w-sm rounded-3xl p-8">
-        <h1 className="text-center text-2xl font-bold tracking-tight text-sky-900">
+        <h1 className="text-center text-2xl font-bold tracking-tight text-slate-900">
           로그인
         </h1>
-        <p className="mt-2 text-center text-sm text-slate-500">
+        <p className="mt-2 text-center text-sm font-medium text-slate-800">
           UPLP SWIM에 오신 것을 환영합니다 🏊
         </p>
 
@@ -84,49 +47,9 @@ export default function LoginPage() {
           카카오로 로그인
         </button>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-slate-700">
           카카오 계정으로 간편하게 시작하세요. 최초 로그인 시 자동으로 가입됩니다.
         </p>
-
-        {/* ── 관리자/개발용 로그인 (로컬 테스트용) ───────────────── */}
-        <div className="mt-8 flex items-center gap-3">
-          <span className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs text-slate-400">관리자 로그인</span>
-          <span className="h-px flex-1 bg-slate-200" />
-        </div>
-
-        <form onSubmit={handleAdminLogin} className="mt-4 space-y-3">
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            placeholder="아이디"
-            className="w-full rounded-xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            placeholder="비밀번호"
-            className="w-full rounded-xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white"
-          />
-
-          {error && (
-            <p className="rounded-xl bg-red-50/80 px-4 py-2.5 text-sm text-red-600">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:bg-slate-300"
-          >
-            {loading ? "로그인 중…" : "아이디로 로그인"}
-          </button>
-        </form>
       </div>
     </div>
   );

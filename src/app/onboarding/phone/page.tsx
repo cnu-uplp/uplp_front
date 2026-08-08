@@ -13,6 +13,7 @@ function digitsOnly(value: string) {
 export default function PhoneOnboardingPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
   const [college, setCollege] = useState("");
   const [department, setDepartment] = useState("");
   const [nickname, setNickname] = useState("");
@@ -29,6 +30,11 @@ export default function PhoneOnboardingPage() {
     try {
       const user = JSON.parse(localStorage.getItem("user") ?? "{}");
       if (user?.nickname) setNickname(user.nickname);
+      // 이미 저장된 값이 있으면 채워둔다 (재입력 시 그대로 보이도록)
+      if (user?.name) setName(user.name);
+      if (user?.college) setCollege(user.college);
+      if (user?.department) setDepartment(user.department);
+      if (user?.phoneNumber) setPhone(user.phoneNumber);
     } catch {
       // 저장값 깨졌으면 인사 생략
     }
@@ -42,6 +48,10 @@ export default function PhoneOnboardingPage() {
       setError("올바른 휴대폰 번호를 입력해주세요. (예: 01012345678)");
       return;
     }
+    if (!name.trim()) {
+      setError("이름을 입력해주세요.");
+      return;
+    }
     if (!college.trim() || !department.trim()) {
       setError("단과대와 학과를 입력해주세요.");
       return;
@@ -52,6 +62,7 @@ export default function PhoneOnboardingPage() {
       const token = localStorage.getItem("accessToken");
       const payload = {
         phoneNumber: digits,
+        name: name.trim(),
         college: college.trim(),
         department: department.trim(),
       };
@@ -91,17 +102,35 @@ export default function PhoneOnboardingPage() {
   return (
     <div className="flex flex-1 items-center justify-center px-6 pb-24 pt-32">
       <div className="glass w-full max-w-sm rounded-3xl p-8">
-        <h1 className="text-center text-2xl font-bold tracking-tight text-sky-900">
+        <h1 className="text-center text-2xl font-bold tracking-tight text-slate-900">
           정보 입력
         </h1>
-        <p className="mt-2 text-center text-sm text-slate-500">
+        <p className="mt-2 text-center text-sm font-medium text-slate-800">
           {nickname ? `${nickname}님, 환영해요! ` : ""}정기수영·훈련 안내와 부원 관리를
           위해 정보가 필요해요.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-7 space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label className="mb-1.5 block text-sm font-medium text-slate-800">
+              이름
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoComplete="name"
+              placeholder="예: 홍길동"
+              className={inputClass}
+            />
+            <p className="mt-1.5 text-xs text-slate-600">
+              레인대관 신청서에 그대로 들어가니 실명으로 입력해주세요.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-800">
               휴대폰 번호
             </label>
             <input
@@ -117,7 +146,7 @@ export default function PhoneOnboardingPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label className="mb-1.5 block text-sm font-medium text-slate-800">
               단과대
             </label>
             <input
@@ -131,7 +160,7 @@ export default function PhoneOnboardingPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label className="mb-1.5 block text-sm font-medium text-slate-800">
               학과
             </label>
             <input
@@ -162,7 +191,7 @@ export default function PhoneOnboardingPage() {
         <button
           type="button"
           onClick={() => router.replace("/")}
-          className="mt-4 w-full text-center text-xs text-slate-400 transition hover:text-slate-600"
+          className="mt-4 w-full text-center text-xs text-slate-700 transition hover:text-slate-900"
         >
           나중에 입력할게요
         </button>

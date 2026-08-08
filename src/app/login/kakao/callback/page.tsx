@@ -40,8 +40,9 @@ export default function KakaoCallbackPage() {
         const data = await res.json(); // { accessToken, user }
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("user", JSON.stringify(data.user));
-        // 전화번호가 아직 없으면(최초 로그인) 연락처 입력 온보딩으로, 있으면 홈으로
-        if (!data.user?.phoneNumber) {
+        // 전화번호·실명이 아직 없으면 온보딩으로, 다 있으면 홈으로.
+        // (실명은 레인대관 명단에 들어가므로 카카오 닉네임으로 대체할 수 없다)
+        if (!data.user?.phoneNumber || !data.user?.name) {
           router.replace("/onboarding/phone");
         } else {
           router.replace("/");
