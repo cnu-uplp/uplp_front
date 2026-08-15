@@ -40,9 +40,11 @@ export default function KakaoCallbackPage() {
         const data = await res.json(); // { accessToken, user }
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("user", JSON.stringify(data.user));
-        // 전화번호·실명이 아직 없으면 온보딩으로, 다 있으면 홈으로.
-        // (실명은 레인대관 명단에 들어가므로 카카오 닉네임으로 대체할 수 없다)
-        if (!data.user?.phoneNumber || !data.user?.name) {
+        // 가입 정보가 아직 없으면 온보딩으로, 다 있으면 홈으로.
+        // 판정은 실명 + 학번으로 한다 — 두 소속(재학생·졸업생) 모두 필수인 값이다.
+        // ⚠️ 전화번호로 판정하면 안 된다. 졸업생은 신청을 못 해서 연락처를 아예
+        //    받지 않으므로(update_me), 온보딩을 마쳐도 매번 다시 온보딩으로 끌려온다.
+        if (!data.user?.name || !data.user?.admissionYear) {
           router.replace("/onboarding/phone");
         } else {
           router.replace("/");

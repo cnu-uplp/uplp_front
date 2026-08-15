@@ -274,13 +274,9 @@ export default function PhoneOnboardingPage() {
           </button>
         </form>
 
-        <button
-          type="button"
-          onClick={() => router.replace("/")}
-          className="mt-4 w-full text-center text-xs text-slate-700 transition hover:text-slate-900"
-        >
-          나중에 입력할게요
-        </button>
+        {/* 건너뛰기 버튼은 두지 않는다.
+            이름·학번·연락처가 없으면 레인대관 신청서에 "회원97" 같은 값이 찍히고,
+            임원진은 승인 판단을 할 근거가 없다. 가입은 정보 입력까지가 한 단위다. */}
       </div>
     </div>
   );
