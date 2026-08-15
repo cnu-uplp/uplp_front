@@ -61,9 +61,10 @@ export default function RootLayout({
             distortionPower={0.5}
             zoom={1}
             fit="cover"
-            // 모바일은 세로로 길어서 cover가 사진 높이를 통째로 담는다 →
-            // 상단 중앙의 사진작가 워터마크가 화면에 들어온다. 초점을 내려 그 띠를 잘라낸다.
-            focusYMobile={0.38}
+            // 사진 위쪽 9%에 사진작가 워터마크가 있다. 세로로 긴 화면(모바일)은
+            // cover가 사진 높이를 통째로 담아 그 띠까지 들어오므로, 비율을 유지한 채
+            // 확대해서 잘라낸다. 초점을 내리기만 하면 아래쪽 픽셀이 늘어나 줄이 생긴다.
+            cropTop={0.09}
             resolution={4}
           />
         </div>
