@@ -1,6 +1,7 @@
 import Link from "next/link";
 import GlassCard from "@/components/GlassCard";
 import EditableSections from "@/components/EditableSections";
+import ClubInfo from "@/components/ClubInfo";
 import { HOME_SEED } from "@/components/sections/homeSeed";
 import AxolotlGame from "@/components/AxolotlGame";
 import Axolotl3DGame from "@/components/Axolotl3DGame";
@@ -84,26 +85,10 @@ export default function Home() {
 
           {/* 오른쪽 — 알약 칩 대신 가는 선으로 나눈 정보 목록.
               라벨은 작게 흐리게, 값은 크게 또렷하게 두어 위계를 만든다. */}
+          {/* 동아리 소개 페이지와 같은 목록을 읽는다 — 거기서 고치면 여기도 바뀐다.
+              앞의 3개만 보여준다(히어로가 길어지지 않게). */}
           <Reveal delay={0.85} immediate className="w-full lg:w-auto">
-            <dl className="flex flex-col gap-px overflow-hidden lg:min-w-[19rem]">
-              {[
-                ["활동", "매주 화 · 목 19:00"],
-                ["장소", "충남대학교 실내수영장"],
-                ["대상", "초급부터 마스터즈까지"],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="flex items-baseline justify-between gap-6 border-t border-white/20 py-3 last:border-b"
-                >
-                  <dt className="text-[0.7rem] uppercase tracking-[0.28em] text-white/55">
-                    {label}
-                  </dt>
-                  <dd className="text-[0.95rem] font-medium text-white sm:text-base">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <ClubInfo variant="hero" limit={3} />
           </Reveal>
         </div>
       </section>
