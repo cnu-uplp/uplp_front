@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
+import OnboardingGate from "@/components/OnboardingGate";
 import LiquidHero from "@/components/motion/LiquidHero";
 import "./globals.css";
 
@@ -71,6 +72,9 @@ export default function RootLayout({
 
         <Navbar />
         <div className="flex flex-1 flex-col">{children}</div>
+        {/* 가입 정보를 안 넣은 회원을 어느 페이지에서든 모달로 막는다.
+            정보가 다 있으면 아무것도 렌더하지 않는다. */}
+        <OnboardingGate />
       </body>
     </html>
   );

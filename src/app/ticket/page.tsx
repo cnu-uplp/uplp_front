@@ -101,6 +101,10 @@ export default function SwimPage() {
   } | null>(null);
   const [cardMsg, setCardMsg] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
+  // 신청 요청이 날아가 있는 세션 id. 정각에 버튼을 연타하면 요청이 여러 개 나가고,
+  // 서버는 중복을 409로 막지만 화면에는 "이미 신청했습니다"라는 실패 문구가 떠서
+  // 정작 성공한 신청을 실패로 오해하게 된다. 응답이 올 때까지 버튼을 잠근다.
+  const [applying, setApplying] = useState<number | null>(null);
   // 명단 대시보드 (모두 공개 — 이름만)
   const [rosters, setRosters] = useState<Record<number, RosterT>>({});
   const [rosterOpen, setRosterOpen] = useState<Record<number, boolean>>({});
@@ -316,6 +320,8 @@ export default function SwimPage() {
       setMsg(sid, "로그인이 필요합니다.");
       return;
     }
+    if (applying !== null) return;   // 연타·중복 클릭 차단
+    setApplying(sid);
     try {
       const res = await fetch(`${API_URL}/api/swim/sessions/${sid}/apply`, {
         method: "POST",
@@ -335,6 +341,8 @@ export default function SwimPage() {
       refreshRosterIfOpen(sid);
     } catch {
       setMsg(sid, "요청 중 오류가 발생했습니다.");
+    } finally {
+      setApplying(null);
     }
   }
 
@@ -714,16 +722,18 @@ export default function SwimPage() {
                             <button
                               type="button"
                               onClick={() => apply(s.id, div)}
-                              disabled={!canApply}
+                              disabled={!canApply || applying !== null}
                               className={
                                 canApply
-                                  ? `${glassBtn("sky")} mt-3 w-full py-2.5`
+                                  ? `${glassBtn("sky")} mt-3 w-full py-2.5 disabled:cursor-wait disabled:opacity-60`
                                   : `${GLASS_BASE} mt-3 w-full cursor-not-allowed bg-slate-400/20 py-2.5 text-slate-500 ring-slate-300/50 hover:translate-y-0`
                               }
                             >
-                              {canApply
-                                ? `${DIVISION_LABEL[div]} 신청하기`
-                                : `${countdown(startMs - nowTs)} 후 신청 가능`}
+                              {!canApply
+                                ? `${countdown(startMs - nowTs)} 후 신청 가능`
+                                : applying === s.id
+                                  ? "신청 중…"
+                                  : `${DIVISION_LABEL[div]} 신청하기`}
                             </button>
                           )}
                         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import GlassCard from "@/components/GlassCard";
+import EditableSections from "@/components/EditableSections";
 import AxolotlGame from "@/components/AxolotlGame";
 import Axolotl3DGame from "@/components/Axolotl3DGame";
 import { Reveal } from "@/components/motion/Reveal";
@@ -25,7 +26,7 @@ export default function Home() {
             화면 가운데 띠와 달리 가장자리에 붙어 있어 '박스'로 보이지 않는다. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] bg-[linear-gradient(to_top,rgba(8,47,73,0.72)_0%,rgba(8,47,73,0.45)_28%,rgba(8,47,73,0.16)_55%,transparent_100%)]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] bg-[linear-gradient(to_top,rgba(24,24,27,0.5)_0%,rgba(24,24,27,0.3)_30%,rgba(24,24,27,0.1)_58%,transparent_100%)]"
         />
 
         {/* 아래에 붙는 좌우 2단 구성 —
@@ -117,6 +118,12 @@ export default function Home() {
         <Testimonials />
         <Timeline />
         <StatsBar />
+
+        {/* 임원진이 웹에서 직접 쓰는 섹션. 아무것도 없으면 렌더되지 않는다.
+            디자인이 정해진 위 섹션들은 그대로 두고, 그때그때 알릴 내용을 여기에 붙인다. */}
+        <section className="mx-auto w-full max-w-4xl px-6 py-8">
+          <EditableSections page="home" />
+        </section>
 
         {/* 미니게임 (우리만의 특색) */}
         <AxolotlGame />
