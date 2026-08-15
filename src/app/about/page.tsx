@@ -1,27 +1,6 @@
 import GlassCard from "@/components/GlassCard";
 import EditableSections from "@/components/EditableSections";
-
-const INFO = [
-  { title: "활동 시간", desc: "매주 화 · 목 19:00 ~ 21:00" },
-  { title: "활동 장소", desc: "학교 실내 수영장 (50m 레인)" },
-  { title: "대상", desc: "수영 초급자부터 마스터즈까지 누구나" },
-  { title: "회비", desc: "학기당 5만원 (강습비 별도 안내)" },
-];
-
-// 임원진이 섹션을 하나도 만들지 않았을 때 보여줄 기본 화면.
-// 이게 없으면 편집 기능을 붙이는 순간 소개 페이지가 빈 화면이 된다.
-function DefaultIntro() {
-  return (
-    <div className="mt-12 grid gap-5 sm:grid-cols-2">
-      {INFO.map((item) => (
-        <div key={item.title} className="glass glass-hover rounded-3xl p-6">
-          <h2 className="font-semibold text-sky-900">{item.title}</h2>
-          <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+import ClubInfo from "@/components/ClubInfo";
 
 export default function AboutPage() {
   return (
@@ -45,19 +24,15 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* 본문은 임원진이 웹에서 직접 고친다. 섹션이 없으면 위 기본 안내가 나오고,
-              임원진은 '기존 내용 가져와서 편집하기'로 그 4개를 그대로 섹션화할 수 있다
-              (1/2 폭 4개 = 2x2 — 지금 보이는 배치와 같다). */}
+          {/* 활동 시간·장소 같은 기본 정보. 홈 첫 화면과 같은 목록을 읽으므로
+              여기서 한 번 고치면 두 화면이 같이 바뀐다. 편집 UI도 여기에만 둔다. */}
           <div className="mt-12">
-            <EditableSections
-              page="about"
-              fallback={<DefaultIntro />}
-              seed={INFO.map((i) => ({
-                title: i.title,
-                body: i.desc,
-                width: "half" as const,
-              }))}
-            />
+            <ClubInfo variant="cards" />
+          </div>
+
+          {/* 자유 서술 섹션 — 임원진이 마크다운으로 쓴다 */}
+          <div className="mt-12">
+            <EditableSections page="about" />
           </div>
         </div>
       </GlassCard>
