@@ -1,6 +1,7 @@
 import Link from "next/link";
 import GlassCard from "@/components/GlassCard";
 import EditableSections from "@/components/EditableSections";
+import { HOME_SEED } from "@/components/sections/homeSeed";
 import AxolotlGame from "@/components/AxolotlGame";
 import Axolotl3DGame from "@/components/Axolotl3DGame";
 import { Reveal } from "@/components/motion/Reveal";
@@ -110,26 +111,35 @@ export default function Home() {
       {/* 스크롤 아래 콘텐츠: '엄청 투명한 유리' 카드로 콘텐츠 전체를 감싼다 (뒤 물결이 은은히 비침).
           유리(backdrop-filter)가 조상이 되면 내부 fixed가 갇히므로, 미니게임 팝업은 body로 portal 처리됨. */}
       <GlassCard id="explore">
-        {/* Fuel 구조 차용: 소개 → 갤러리 → 프로그램 → 회비 → 후기 → 연혁 → 통계 → 미니게임 → FAQ → 푸터 */}
-        <About />
+        {/* 갤러리·통계·미니게임은 코드로 남긴다 — 이미지 배치·숫자 카운터라
+            글로 옮기면 디자인이 사라진다. */}
         <Gallery />
-        <Programs />
-        <Pricing />
-        <Testimonials />
-        <Timeline />
         <StatsBar />
 
-        {/* 임원진이 웹에서 직접 쓰는 섹션. 아무것도 없으면 렌더되지 않는다.
-            디자인이 정해진 위 섹션들은 그대로 두고, 그때그때 알릴 내용을 여기에 붙인다. */}
+        {/* 글 위주 섹션(소개·프로그램·회비·후기·연혁·FAQ)은 임원진이 웹에서 고친다.
+            아직 가져오지 않았으면 fallback 으로 원래 컴포넌트가 그대로 나오고,
+            '기존 내용 가져와서 편집하기'를 누르면 그 자리를 DB 섹션이 대신한다. */}
         <section className="mx-auto w-full max-w-4xl px-6 py-8">
-          <EditableSections page="home" />
+          <EditableSections
+            page="home"
+            seed={HOME_SEED}
+            fallback={
+              <>
+                <About />
+                <Programs />
+                <Pricing />
+                <Testimonials />
+                <Timeline />
+                <FAQ />
+              </>
+            }
+          />
         </section>
 
         {/* 미니게임 (우리만의 특색) */}
         <AxolotlGame />
         <Axolotl3DGame />
 
-        <FAQ />
         <Footer />
       </GlassCard>
     </div>

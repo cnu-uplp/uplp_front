@@ -75,8 +75,12 @@ function myStateText(my: NonNullable<MyState>) {
   return `${label} 후순위 대기 ${my.rank}번 (병합 대기중)`;
 }
 
+// min-w-0 이 핵심이다.
+// iOS Safari의 <input type="date"> 는 "yyyy. mm. dd." 를 담을 만큼의 고유 최소 너비를
+// 갖는데, grid/flex 자식은 기본이 min-width:auto 라 그 너비 아래로 줄어들기를 거부한다.
+// 그래서 w-full 을 줘도 칸이 카드 밖으로 삐져나갔다. min-w-0 을 줘야 실제로 줄어든다.
 const inputClass =
-  "w-full rounded-xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white";
+  "w-full min-w-0 rounded-xl border border-white/60 bg-white/70 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white";
 
 // 유리(글래스) 느낌 버튼 — 반투명 배경 + blur + 안쪽 하이라이트 테두리
 const GLASS_BASE =
@@ -151,11 +155,30 @@ export default function SwimPage() {
   }, []);
 
   useEffect(() => {
+    // ① 저장값으로 즉시 그린다 (화면이 비었다가 채워지는 깜빡임 방지)
     try {
       const raw = localStorage.getItem("user");
       setMe(raw ? JSON.parse(raw) : null);
     } catch {
       setMe(null);
+    }
+    // ② 서버 값으로 덮어쓴다.
+    //    ⚠️ 승인 상태는 임원진이 바꾸는 값이라 localStorage 는 로그인 시점에 멈춰 있다.
+    //    저장값만 믿으면 승인을 받고도 "승인 대기" 안내가 계속 뜨고 신청 버튼도 안 열린다.
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      fetch(`${API_URL}/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((fresh) => {
+          if (!fresh) return;
+          setMe(fresh);
+          localStorage.setItem("user", JSON.stringify(fresh));
+        })
+        .catch(() => {
+          /* 서버가 죽어도 저장값으로 계속 보여준다 */
+        });
     }
     fetchSessions();
     // 주기 갱신 (다른 사람의 신청/취소 반영)
@@ -538,7 +561,7 @@ export default function SwimPage() {
                     {editingId !== null ? "정기수영 수정" : "정기수영 설정"}
                   </h2>
 
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-4 [&>*]:min-w-0 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-slate-700">
                         모이는 날
@@ -700,7 +723,7 @@ export default function SwimPage() {
                     </span>
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-3 [&>*]:min-w-0 sm:grid-cols-2">
                     {(Object.keys(DIVISION_LABEL) as Division[]).map((div) => {
                       const c = s.counts[div];
                       return (
@@ -797,7 +820,7 @@ export default function SwimPage() {
                     </button>
 
                     {rosterOpen[s.id] && rosters[s.id] && (
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-3 grid gap-3 [&>*]:min-w-0 sm:grid-cols-2">
                         {(Object.keys(DIVISION_LABEL) as Division[]).map((div) => {
                           const r = rosters[s.id].divisions[div];
                           const rows = [
