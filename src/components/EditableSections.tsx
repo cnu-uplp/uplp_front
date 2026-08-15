@@ -6,6 +6,8 @@ import Markdown from "@/components/Markdown";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const STAFF_ROLES = ["executive", "admin"];
 
+type Width = "full" | "half" | "third";
+
 type Section = {
   id: number;
   page: string;
@@ -13,6 +15,21 @@ type Section = {
   body: string;
   sortOrder: number;
   visible: boolean;
+  width: Width;
+};
+
+// 6칸 그리드에서 차지하는 칸 수. 좁은 화면(sm 미만)에서는 전부 한 줄씩 쌓는다 —
+// 휴대폰에서 2단으로 쪼개면 글자가 너무 좁아진다.
+const SPAN: Record<Width, string> = {
+  full: "col-span-6",
+  half: "col-span-6 sm:col-span-3",
+  third: "col-span-6 sm:col-span-2",
+};
+
+const WIDTH_LABEL: Record<Width, string> = {
+  full: "한 줄 전체",
+  half: "1/2 (2개 나란히)",
+  third: "1/3 (3개 나란히)",
 };
 
 const GLASS =
@@ -32,15 +49,22 @@ const btn = {
 export default function EditableSections({
   page,
   fallback,
+  seed,
 }: {
   page: "home" | "about";
   fallback?: React.ReactNode;
+  /** 코드에 박혀 있던 기존 안내. 임원진이 '기존 내용 가져오기'로 섹션화할 수 있다. */
+  seed?: { title: string; body: string; width: Width }[];
 }) {
   const [sections, setSections] = useState<Section[]>([]);
   const [isStaff, setIsStaff] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState<number | "new" | null>(null);
-  const [draft, setDraft] = useState({ title: "", body: "" });
+  const [draft, setDraft] = useState<{ title: string; body: string; width: Width }>({
+    title: "",
+    body: "",
+    width: "full",
+  });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -101,12 +125,12 @@ export default function EditableSections({
   }
 
   function startNew() {
-    setDraft({ title: "", body: "" });
+    setDraft({ title: "", body: "", width: "full" });
     setEditing("new");
   }
 
   function startEdit(s: Section) {
-    setDraft({ title: s.title ?? "", body: s.body });
+    setDraft({ title: s.title ?? "", body: s.body, width: s.width ?? "full" });
     setEditing(s.id);
   }
 
@@ -117,12 +141,25 @@ export default function EditableSections({
     }
     const ok =
       editing === "new"
-        ? await send("", "POST", { page, title: draft.title, body: draft.body })
-        : await send(`/${editing}`, "PATCH", {
-            title: draft.title,
-            body: draft.body,
-          });
+        ? await send("", "POST", { page, ...draft })
+        : await send(`/${editing}`, "PATCH", draft);
     if (ok) setEditing(null);
+  }
+
+  /** 코드에 박혀 있던 기존 안내를 섹션으로 옮긴다 (한 번만 누르면 된다). */
+  async function importDefaults() {
+    if (!seed?.length) return;
+    if (
+      !window.confirm(
+        `기존 안내 ${seed.length}개를 편집 가능한 섹션으로 가져올까요?\n\n` +
+          "가져온 뒤에는 화면에서 자유롭게 고치고 지울 수 있습니다.",
+      )
+    )
+      return;
+    for (const s of seed) {
+      // 순서를 지키려고 하나씩 보낸다 (동시에 보내면 sort_order가 뒤섞인다)
+      await send("", "POST", { page, ...s });
+    }
   }
 
   async function remove(s: Section) {
@@ -148,13 +185,18 @@ export default function EditableSections({
   if (!loaded) return <>{fallback ?? null}</>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {sections.length === 0 && fallback}
 
+      {/* 6칸 그리드 — full=6칸, half=3칸(2개 나란히), third=2칸(3개 나란히).
+          half 4개를 이어 붙이면 2x2가 된다. */}
+      <div className="grid grid-cols-6 gap-5">
       {shown.map((s, i) => (
         <section
           key={s.id}
-          className={s.visible ? "" : "rounded-2xl bg-amber-100/40 p-4 ring-1 ring-amber-300/50"}
+          className={`${SPAN[s.width ?? "full"]} ${
+            s.visible ? "" : "rounded-2xl bg-amber-100/40 p-4 ring-1 ring-amber-300/50"
+          }`}
         >
           {isStaff && (
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -205,15 +247,24 @@ export default function EditableSections({
           )}
         </section>
       ))}
+      </div>
 
       {isStaff && editing === "new" && (
         <Editor draft={draft} setDraft={setDraft} onSave={save} onCancel={() => setEditing(null)} busy={busy} />
       )}
 
       {isStaff && editing !== "new" && (
-        <button type="button" className={btn.sky} disabled={busy} onClick={startNew}>
-          + 섹션 추가
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={btn.sky} disabled={busy} onClick={startNew}>
+            + 섹션 추가
+          </button>
+          {/* 코드에 박혀 있던 안내를 섹션으로 옮기는 버튼. 이미 옮겼으면 숨긴다. */}
+          {!!seed?.length && sections.length === 0 && (
+            <button type="button" className={btn.slate} disabled={busy} onClick={importDefaults}>
+              기존 내용 가져와서 편집하기
+            </button>
+          )}
+        </div>
       )}
 
       {msg && (
@@ -230,8 +281,8 @@ function Editor({
   onCancel,
   busy,
 }: {
-  draft: { title: string; body: string };
-  setDraft: (d: { title: string; body: string }) => void;
+  draft: { title: string; body: string; width: Width };
+  setDraft: (d: { title: string; body: string; width: Width }) => void;
   onSave: () => void;
   onCancel: () => void;
   busy: boolean;
@@ -251,6 +302,32 @@ function Editor({
         placeholder={"본문 (마크다운)\n\n## 큰 제목\n### 작은 제목\n- 목록\n**굵게**  *기울임*  [링크](https://…)"}
         className="mt-3 w-full rounded-xl border border-white/60 bg-white/70 px-4 py-3 font-mono text-sm text-slate-900 outline-none focus:border-sky-400 focus:bg-white"
       />
+
+      {/* 가로 폭 — 1/2 짜리 4개를 만들면 2x2가 된다 */}
+      <div className="mt-3">
+        <label className="mb-1.5 block text-sm font-medium text-slate-800">
+          가로 크기
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {(["full", "half", "third"] as Width[]).map((w) => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => setDraft({ ...draft, width: w })}
+              className={`rounded-xl px-3 py-2 text-sm font-semibold ring-1 ring-inset transition ${
+                draft.width === w
+                  ? "bg-sky-500/25 text-sky-900 ring-sky-400/70"
+                  : "bg-white/60 text-slate-700 ring-white/70 hover:bg-white/80"
+              }`}
+            >
+              {WIDTH_LABEL[w]}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-slate-600">
+          휴대폰에서는 화면이 좁아 모두 한 줄씩 쌓입니다.
+        </p>
+      </div>
 
       {draft.body.trim() && (
         <div className="mt-4 rounded-2xl bg-white/50 p-4">
