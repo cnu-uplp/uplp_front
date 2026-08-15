@@ -37,6 +37,13 @@ type Props = {
   zoom?: number;
   /** "cover" = 화면을 꽉 채우고 크롭 (기본) / "contain" = 사진 전체가 보이게 (여백 생김) */
   fit?: "cover" | "contain";
+  /** cover일 때 사진의 어느 높이를 화면 중앙에 둘지. 0.5 = 정중앙.
+   *  낮출수록 사진의 아래쪽이 보인다(= 사진이 위로 올라가고 윗부분이 잘린다). */
+  focusY?: number;
+  /** 좁은 화면(<768px)에서 쓸 focusY. 미지정 시 focusY와 같다.
+   *  세로로 긴 화면은 cover가 사진 '높이 전체'를 담아서 상단 워터마크까지 들어온다.
+   *  그래서 모바일만 초점을 더 내려 위쪽을 잘라낸다. */
+  focusYMobile?: number;
   /** contain일 때 남는 여백 색 (#rrggbb) */
   padColor?: string;
   className?: string;
@@ -179,6 +186,7 @@ const DISPLAY_FRAG = `
   uniform float u_disturb;     // distortionPower
   uniform float u_zoom;        // 이미지 확대(크롭) 정도
   uniform float u_contain;     // 0 = cover(꽉 채움·크롭) / 1 = contain(사진 전체 보임)
+  uniform float u_focus_y;     // cover일 때 화면 중앙에 둘 사진 높이 (낮을수록 아래쪽을 보여줌)
   uniform vec3 u_pad_color;    // contain일 때 남는 여백 색
   uniform sampler2D u_output_texture; // dye(offset), .r
   uniform sampler2D u_velocity;
@@ -195,7 +203,7 @@ const DISPLAY_FRAG = `
       else s.x = u_ratio / u_img_ratio;
     }
     s *= u_zoom;                           // 살짝 확대해 밋밋한 가장자리를 크롭 (1 = 확대 없음)
-    float cy = u_contain > 0.5 ? 0.5 : 0.44; // contain은 정중앙, cover는 초점을 살짝 아래로
+    float cy = u_contain > 0.5 ? 0.5 : u_focus_y; // contain은 정중앙, cover는 초점을 살짝 아래로
     return (uv - 0.5) * s + vec2(0.5, cy);
   }
   void main () {
@@ -223,6 +231,8 @@ export default function LiquidHero({
   distortionPower = 0.8,
   zoom = 0.82,
   fit = "cover",
+  focusY = 0.44,
+  focusYMobile,
   padColor = "#eaf4ff",
   className,
 }: Props) {
@@ -265,7 +275,13 @@ export default function LiquidHero({
       cursorPower: 5 + ((cursorPower - 0.1) * (50 - 5)) / (1 - 0.1),
       distortion: distortionPower,
     };
-    const SUPERSAMPLE = 1.2; // 캔버스를 살짝 오버스캔해 가장자리 왜곡을 감춤
+    // 캔버스를 살짝 오버스캔해 가장자리 왜곡을 감춘다.
+    // 모바일에서는 오버스캔을 거의 없앤다 — 화면 밖 픽셀까지 매 프레임 유체를 도는 비용이 크다.
+    const isSmall = () => window.innerWidth < 768;
+    const superSample = () => (isSmall() ? 1.04 : 1.2);
+    // 폰은 DPR이 3인 기종이 많아 그대로 두면 캔버스가 400만 픽셀에 육박한다.
+    // 배경(블러 위에 깔리는 물결)이라 1.5배면 육안 차이가 없고 픽셀 수는 절반 이하가 된다.
+    const maxDpr = () => (isSmall() ? 1.5 : 2);
 
     const pointer = { x: 0, y: 0, dx: 0, dy: 0, moved: false };
     let inside = false;
@@ -413,14 +429,22 @@ export default function LiquidHero({
       const w = wrap.clientWidth;
       const h = wrap.clientHeight;
       if (!w || !h) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(2, Math.round(w * SUPERSAMPLE * dpr));
-      canvas.height = Math.max(2, Math.round(h * SUPERSAMPLE * dpr));
-      canvas.style.width = `${w * SUPERSAMPLE}px`;
-      canvas.style.height = `${h * SUPERSAMPLE}px`;
+      const ss = superSample();
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr());
+      canvas.width = Math.max(2, Math.round(w * ss * dpr));
+      canvas.height = Math.max(2, Math.round(h * ss * dpr));
+      canvas.style.width = `${w * ss}px`;
+      canvas.style.height = `${h * ss}px`;
+      // 오버스캔한 만큼 좌·상으로 당겨 화면 중앙에 맞춘다.
+      // 이 값이 ss와 어긋나면 반대쪽에 빈 띠가 생긴다(JSX의 -10%는 ss=1.2 전용 초기값).
+      const off = ((ss - 1) / 2) * 100;
+      canvas.style.left = `${-off}%`;
+      canvas.style.top = `${-off}%`;
       const aspect = w / h;
       // 원본과 동일: 해상도 배율 1~10 → 격자 128~512
-      const base = 128 + ((resolution - 1) * (512 - 128)) / 9;
+      let base = 128 + ((resolution - 1) * (512 - 128)) / 9;
+      // 모바일은 시뮬레이션 격자도 한 단계 낮춘다 (압력 반복이 격자 크기에 비례해 무거워짐)
+      if (isSmall()) base = Math.max(128, base * 0.7);
       sim = { w: Math.round(base * aspect), h: Math.round(base) };
     }
     function initFBOs() {
@@ -432,8 +456,9 @@ export default function LiquidHero({
 
     // 컨테이너 좌표(0..1, 원점 좌하단) — 오버스캔 보정 포함
     function pointerUv() {
-      const ew = wrap.clientWidth * SUPERSAMPLE;
-      const eh = wrap.clientHeight * SUPERSAMPLE;
+      const ss = superSample();
+      const ew = wrap.clientWidth * ss;
+      const eh = wrap.clientHeight * ss;
       const ox = 0.5 * (ew - wrap.clientWidth);
       const oy = 0.5 * (eh - wrap.clientHeight);
       return { u: (pointer.x + ox) / ew, v: 1 - (pointer.y + oy) / eh };
@@ -544,7 +569,9 @@ export default function LiquidHero({
       blit(velocity.write());
       velocity.swap();
 
-      // advection ① 속도장 (dt, 감쇠 0.97)
+      // advection ① 속도장.
+      // 감쇠가 1에 가까울수록 흐름이 오래 살아남아 파동이 멀리까지 퍼진다.
+      // 0.94 → 0.975 (1초 뒤 잔량 2.5% → 22%)
       gl.useProgram(advection.program);
       gl.uniform2f(advection.uniforms.u_texel, velocity.texelX, velocity.texelY);
       gl.uniform2f(
@@ -558,19 +585,21 @@ export default function LiquidHero({
       );
       gl.uniform1i(advection.uniforms.u_input_texture, velocity.read().attach(1));
       gl.uniform1f(advection.uniforms.u_dt, dt);
-      gl.uniform1f(advection.uniforms.u_dissipation, 0.94);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.975);
       blit(velocity.write());
       velocity.swap();
 
-      // advection ② dye(offset) — 속도장 따라 8배 dt로 빠르게, 감쇠 0.98
+      // advection ② dye(offset) — 속도장을 따라 흐르는 '왜곡 크기' 필드.
+      // dt 배수를 올리면 더 빨리 번지고, 감쇠를 올리면 더 오래 남는다.
+      // 5배·0.95 → 6배·0.972
       gl.uniform2f(advection.uniforms.u_output_texel, dye.texelX, dye.texelY);
       gl.uniform1i(
         advection.uniforms.u_velocity_texture,
         velocity.read().attach(1),
       );
       gl.uniform1i(advection.uniforms.u_input_texture, dye.read().attach(2));
-      gl.uniform1f(advection.uniforms.u_dt, 5 * dt);
-      gl.uniform1f(advection.uniforms.u_dissipation, 0.95);
+      gl.uniform1f(advection.uniforms.u_dt, 6 * dt);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.972);
       blit(dye.write());
       dye.swap();
 
@@ -582,6 +611,11 @@ export default function LiquidHero({
         gl.uniform1f(display.uniforms.u_disturb, cfg.distortion);
         gl.uniform1f(display.uniforms.u_zoom, zoom);
         gl.uniform1f(display.uniforms.u_contain, fit === "contain" ? 1 : 0);
+        // 폭을 매 프레임 읽어 판단한다 — 별도 state 없이 회전·리사이즈에 바로 따라간다.
+        gl.uniform1f(
+          display.uniforms.u_focus_y,
+          wrap.clientWidth < 768 ? focusYMobile ?? focusY : focusY,
+        );
         gl.uniform3f(
           display.uniforms.u_pad_color,
           parseInt(padColor.slice(1, 3), 16) / 255,
@@ -610,7 +644,18 @@ export default function LiquidHero({
       window.removeEventListener("resize", onResize);
       ro.disconnect();
     };
-  }, [src, resolution, cursorSize, cursorPower, distortionPower, zoom, fit, padColor]);
+  }, [
+    src,
+    resolution,
+    cursorSize,
+    cursorPower,
+    distortionPower,
+    zoom,
+    fit,
+    padColor,
+    focusY,
+    focusYMobile,
+  ]);
 
   return (
     <div

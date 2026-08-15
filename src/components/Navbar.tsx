@@ -15,14 +15,30 @@ type SessionUser = { nickname?: string; name?: string };
 const STAFF_ITEM = { href: "/members", label: "부원 관리" };
 const STAFF_ROLES = ["executive", "admin"];
 
-// 항상 상단바에 노출되는 메뉴 (모바일 포함)
+// 상단바 유리 버튼 — 배경 사진 위든 유리 네비 위든 같은 모양으로 둔다.
+//
+// ⚠️ [text-shadow:none] 이 핵심이다.
+// 부모 <nav>가 흰 글자용으로 진한 남색 그림자를 걸어두는데, 그게 버튼 글자에도 상속돼
+// '진한 글자 + 진한 그림자'가 겹치며 번져 보였다. 버튼 안에서는 그림자를 꺼야 또렷하다.
+//
+// 유리를 조금 더 채우고(70%) 블러를 키워(16px) 뒤 사진이 균일한 면으로 깔리게 한 뒤,
+// 그 위에 sky-900 글자를 얹는다 — 950은 배경 대비가 지나쳐 딱딱해 보였다.
+const NAV_GLASS =
+  "rounded-full px-5 py-2 text-sm font-bold tracking-tight backdrop-blur-[16px] backdrop-saturate-150 " +
+  "ring-1 ring-inset transition [text-shadow:none] " +
+  "bg-white/70 text-sky-900 ring-white/90 hover:bg-white/85 hover:-translate-y-px active:translate-y-0 " +
+  "[box-shadow:inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(8,47,73,0.3)]";
+
+// 모바일 상단바에 항상 남기는 메뉴 — 좁은 화면에서 글자가 겹치지 않게 2개만 둔다.
 const PRIMARY_ITEMS = [
   { href: "/", label: "홈" },
   { href: "/about", label: "동아리 소개" },
-  { href: "/notice", label: "공지/일정" },
 ];
-// 데스크톱은 상단바, 모바일은 ≡ 드로어 안으로 들어가는 항목
-const TICKET_ITEM = { href: "/ticket", label: "정기수영" };
+// 데스크톱 상단바에는 나오고, 모바일에서는 ≡ 드로어로 내려가는 항목
+const SECONDARY_ITEMS = [
+  { href: "/notice", label: "공지/일정" },
+  { href: "/ticket", label: "정기수영" },
+];
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -31,6 +47,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false); // 모바일 드로어 열림 여부
   const [user, setUser] = useState<SessionUser | null>(null); // 로그인 유저(없으면 null)
   const [isStaff, setIsStaff] = useState(false); // 임원진 이상 여부 (서버 판정)
+  const [pending, setPending] = useState(0);    // 승인 대기 인원 (임원진에게만)
 
   // 로그인 상태 읽기 — 마운트 + 페이지 이동마다 (로그인 직후 홈으로 오면 인사 반영)
   useEffect(() => {
@@ -56,7 +73,17 @@ export default function Navbar() {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((me) => {
-        if (alive) setIsStaff(STAFF_ROLES.includes(me?.role));
+        const staff = STAFF_ROLES.includes(me?.role);
+        if (alive) setIsStaff(staff);
+        if (!staff) return;
+        // 승인 대기 인원 — 배지가 없으면 임원진이 대기자를 모른 채 방치하게 된다.
+        return fetch(`${API_URL}/api/users/pending-count`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            if (alive) setPending(d?.count ?? 0);
+          });
       })
       .catch(() => {
         if (alive) setIsStaff(false);
@@ -169,23 +196,30 @@ export default function Navbar() {
               </Link>
             </li>
           ))}
-          {/* 티케팅: 데스크톱 상단바에만 (모바일은 드로어로) */}
-          <li className="hidden sm:block">
-            <Link
-              href={TICKET_ITEM.href}
-              className={itemClass(TICKET_ITEM.href, "transition-opacity")}
-            >
-              {TICKET_ITEM.label}
-            </Link>
-          </li>
+          {/* 공지·정기수영: 데스크톱 상단바에만 (모바일은 드로어로) */}
+          {SECONDARY_ITEMS.map((item) => (
+            <li key={item.href} className="hidden lg:block">
+              <Link
+                href={item.href}
+                className={itemClass(item.href, "transition-opacity")}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
           {/* 부원 관리: 정기수영 옆 — 임원진 이상에게만 */}
           {isStaff && (
-            <li className="hidden sm:block">
+            <li className="hidden lg:block">
               <Link
                 href={STAFF_ITEM.href}
-                className={itemClass(STAFF_ITEM.href, "transition-opacity")}
+                className={itemClass(STAFF_ITEM.href, "inline-flex items-center gap-1.5 transition-opacity")}
               >
                 {STAFF_ITEM.label}
+                {pending > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[0.68rem] font-bold text-white [text-shadow:none]">
+                    {pending}
+                  </span>
+                )}
               </Link>
             </li>
           )}
@@ -194,10 +228,12 @@ export default function Navbar() {
         <div className="flex shrink-0 items-center gap-2">
           {/* 로그인 상태 — 데스크톱 상단바 (모바일은 드로어로) */}
           {user ? (
-            <div className="hidden items-center gap-3 sm:flex">
+            <div className="hidden items-center gap-3 lg:flex">
               <span
-                className={`text-sm font-semibold ${
-                  light ? "text-white" : "text-sky-800"
+                className={`text-sm font-bold ${
+                  light
+                    ? "text-white [text-shadow:0_1px_3px_rgba(8,47,73,0.55)]"
+                    : "text-sky-950"
                 }`}
               >
                 안녕하세요, {user.name ?? user.nickname ?? "회원"}님
@@ -205,11 +241,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={logout}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  light
-                    ? "bg-white/20 text-white ring-1 ring-white/50 hover:bg-white/30"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
+                className={NAV_GLASS}
               >
                 로그아웃
               </button>
@@ -217,11 +249,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className={`hidden rounded-full px-5 py-2 text-sm font-semibold transition sm:inline-flex ${
-                light
-                  ? "bg-white/90 text-sky-700 hover:bg-white"
-                  : "bg-sky-600 text-white hover:bg-sky-500"
-              }`}
+              className={`hidden lg:inline-flex ${NAV_GLASS}`}
             >
               로그인
             </Link>
@@ -234,7 +262,7 @@ export default function Navbar() {
             aria-expanded={open}
             aria-controls="mobile-drawer"
             onClick={() => setOpen(true)}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition sm:hidden ${
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition lg:hidden ${
               light ? "text-white hover:bg-white/15" : "text-sky-800 hover:bg-sky-100"
             }`}
           >
@@ -254,7 +282,7 @@ export default function Navbar() {
       {/* 배경 딤 */}
       <div
         onClick={() => setOpen(false)}
-        className={`fixed inset-0 z-[60] bg-sky-950/40 transition-opacity duration-300 sm:hidden ${
+        className={`fixed inset-0 z-[60] bg-sky-950/40 transition-opacity duration-300 lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden
@@ -262,7 +290,7 @@ export default function Navbar() {
       {/* 패널 */}
       <aside
         id="mobile-drawer"
-        className={`fixed right-0 top-0 z-[61] flex h-full w-64 max-w-[80vw] flex-col gap-1 bg-white/95 p-5 shadow-2xl backdrop-blur transition-transform duration-300 sm:hidden ${
+        className={`fixed right-0 top-0 z-[61] flex h-full w-64 max-w-[80vw] flex-col gap-1 bg-white/95 p-5 shadow-2xl backdrop-blur transition-transform duration-300 lg:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -285,18 +313,21 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* 티케팅 */}
-        <Link
-          href={TICKET_ITEM.href}
-          onClick={() => setOpen(false)}
-          className={`rounded-xl px-4 py-3 text-base font-medium transition ${
-            pathname === TICKET_ITEM.href
-              ? "bg-sky-50 font-semibold text-sky-700"
-              : "text-slate-700 hover:bg-sky-50"
-          }`}
-        >
-          {TICKET_ITEM.label}
-        </Link>
+        {/* 상단바에서 내려온 메뉴 — 모바일에서는 여기가 유일한 진입점 */}
+        {SECONDARY_ITEMS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => setOpen(false)}
+            className={`rounded-xl px-4 py-3 text-base font-medium transition ${
+              pathname === item.href
+                ? "bg-sky-50 font-semibold text-sky-700"
+                : "text-slate-700 hover:bg-sky-50"
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
 
         {/* 부원 관리 — 임원진 이상에게만 */}
         {isStaff && (
@@ -309,20 +340,29 @@ export default function Navbar() {
                 : "text-slate-700 hover:bg-sky-50"
             }`}
           >
-            {STAFF_ITEM.label}
+            <span className="inline-flex items-center gap-2">
+              {STAFF_ITEM.label}
+              {pending > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[0.68rem] font-bold text-white">
+                  {pending}
+                </span>
+              )}
+            </span>
           </Link>
         )}
 
-        {/* 로그인 상태 */}
+        {/* 로그인 상태 — 링크 목록과 떨어뜨려 드로어 맨 아래에 붙인다
+            (위에 몰아두면 아래가 텅 비어 메뉴가 잘린 것처럼 보인다) */}
+        <div className="mt-auto border-t border-slate-200 pt-4">
         {user ? (
           <>
-            <div className="mt-3 rounded-xl bg-sky-50 px-4 py-3 text-center text-sm font-semibold text-sky-800">
+            <div className="rounded-xl bg-sky-50 px-4 py-3 text-center text-sm font-semibold text-sky-800">
               안녕하세요, {user.name ?? user.nickname ?? "회원"}님
             </div>
             <button
               type="button"
               onClick={logout}
-              className="mt-2 rounded-full bg-slate-100 px-4 py-3 text-center text-base font-semibold text-slate-600 transition hover:bg-slate-200"
+              className="mt-2 block w-full rounded-full bg-slate-500/15 px-4 py-3 text-center text-base font-bold text-slate-800 ring-1 ring-inset ring-slate-300/60 backdrop-blur-md transition hover:bg-slate-500/25 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.8)]"
             >
               로그아웃
             </button>
@@ -331,11 +371,12 @@ export default function Navbar() {
           <Link
             href="/login"
             onClick={() => setOpen(false)}
-            className="mt-3 rounded-full bg-sky-600 px-4 py-3 text-center text-base font-semibold text-white transition hover:bg-sky-500"
+            className="block w-full rounded-full bg-sky-500/25 px-4 py-3 text-center text-base font-bold text-sky-950 ring-1 ring-inset ring-sky-300/60 backdrop-blur-md transition hover:bg-sky-500/35 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.8)]"
           >
             로그인
           </Link>
         )}
+        </div>
       </aside>
     </header>
   );

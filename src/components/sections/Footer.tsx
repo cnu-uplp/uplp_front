@@ -51,9 +51,9 @@ export default function Footer() {
           </nav>
         </div>
 
-        {/* 배경 사진 저작자 표시(CC BY) — 저작자 허락 하에 업스케일하여 사용 */}
+        {/* 저작자 표시는 원문(영어) 그대로 둔다 — 라이선스 표기는 번역하지 않는다 */}
         <p className="mt-10 text-xs leading-relaxed text-white/40">
-          배경 사진{" "}
+          Background photograph{" "}
           <a
             href="https://www.flickr.com/photos/globaledgephotography/45549155674/"
             target="_blank"
@@ -71,11 +71,24 @@ export default function Footer() {
           >
             CC BY-NC-ND 2.0
           </a>{" "}
-          · 저작자 허락을 받아 해상도를 보정하여 사용했습니다.
+          · Upscaled with the photographer&apos;s permission.
+        </p>
+
+        <p className="mt-3 text-xs leading-relaxed text-white/40">
+          Liquid background based on{" "}
+          <a
+            href="https://github.com/PavelDoGreat/WebGL-Fluid-Simulation"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-white/70"
+          >
+            WebGL-Fluid-Simulation
+          </a>{" "}
+          © 2017 Pavel Dobryakov · MIT License
         </p>
 
         <p className="mt-3 text-xs text-white/40">
-          © 2026 UPLP Swimming Club. All rights reserved.
+          © 2026 UPLP Swimming Club, Chungnam National University. All rights reserved.
         </p>
       </div>
     </footer>
