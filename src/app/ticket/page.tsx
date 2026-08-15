@@ -151,11 +151,30 @@ export default function SwimPage() {
   }, []);
 
   useEffect(() => {
+    // ① 저장값으로 즉시 그린다 (화면이 비었다가 채워지는 깜빡임 방지)
     try {
       const raw = localStorage.getItem("user");
       setMe(raw ? JSON.parse(raw) : null);
     } catch {
       setMe(null);
+    }
+    // ② 서버 값으로 덮어쓴다.
+    //    ⚠️ 승인 상태는 임원진이 바꾸는 값이라 localStorage 는 로그인 시점에 멈춰 있다.
+    //    저장값만 믿으면 승인을 받고도 "승인 대기" 안내가 계속 뜨고 신청 버튼도 안 열린다.
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      fetch(`${API_URL}/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((fresh) => {
+          if (!fresh) return;
+          setMe(fresh);
+          localStorage.setItem("user", JSON.stringify(fresh));
+        })
+        .catch(() => {
+          /* 서버가 죽어도 저장값으로 계속 보여준다 */
+        });
     }
     fetchSessions();
     // 주기 갱신 (다른 사람의 신청/취소 반영)
