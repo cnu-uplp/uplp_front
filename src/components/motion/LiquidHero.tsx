@@ -37,6 +37,13 @@ type Props = {
   zoom?: number;
   /** "cover" = 화면을 꽉 채우고 크롭 (기본) / "contain" = 사진 전체가 보이게 (여백 생김) */
   fit?: "cover" | "contain";
+  /** cover일 때 사진의 어느 높이를 화면 중앙에 둘지. 0.5 = 정중앙.
+   *  낮출수록 사진의 아래쪽이 보인다(= 사진이 위로 올라가고 윗부분이 잘린다). */
+  focusY?: number;
+  /** 좁은 화면(<768px)에서 쓸 focusY. 미지정 시 focusY와 같다.
+   *  세로로 긴 화면은 cover가 사진 '높이 전체'를 담아서 상단 워터마크까지 들어온다.
+   *  그래서 모바일만 초점을 더 내려 위쪽을 잘라낸다. */
+  focusYMobile?: number;
   /** contain일 때 남는 여백 색 (#rrggbb) */
   padColor?: string;
   className?: string;
@@ -179,6 +186,7 @@ const DISPLAY_FRAG = `
   uniform float u_disturb;     // distortionPower
   uniform float u_zoom;        // 이미지 확대(크롭) 정도
   uniform float u_contain;     // 0 = cover(꽉 채움·크롭) / 1 = contain(사진 전체 보임)
+  uniform float u_focus_y;     // cover일 때 화면 중앙에 둘 사진 높이 (낮을수록 아래쪽을 보여줌)
   uniform vec3 u_pad_color;    // contain일 때 남는 여백 색
   uniform sampler2D u_output_texture; // dye(offset), .r
   uniform sampler2D u_velocity;
@@ -195,7 +203,7 @@ const DISPLAY_FRAG = `
       else s.x = u_ratio / u_img_ratio;
     }
     s *= u_zoom;                           // 살짝 확대해 밋밋한 가장자리를 크롭 (1 = 확대 없음)
-    float cy = u_contain > 0.5 ? 0.5 : 0.44; // contain은 정중앙, cover는 초점을 살짝 아래로
+    float cy = u_contain > 0.5 ? 0.5 : u_focus_y; // contain은 정중앙, cover는 초점을 살짝 아래로
     return (uv - 0.5) * s + vec2(0.5, cy);
   }
   void main () {
@@ -223,6 +231,8 @@ export default function LiquidHero({
   distortionPower = 0.8,
   zoom = 0.82,
   fit = "cover",
+  focusY = 0.44,
+  focusYMobile,
   padColor = "#eaf4ff",
   className,
 }: Props) {
@@ -601,6 +611,11 @@ export default function LiquidHero({
         gl.uniform1f(display.uniforms.u_disturb, cfg.distortion);
         gl.uniform1f(display.uniforms.u_zoom, zoom);
         gl.uniform1f(display.uniforms.u_contain, fit === "contain" ? 1 : 0);
+        // 폭을 매 프레임 읽어 판단한다 — 별도 state 없이 회전·리사이즈에 바로 따라간다.
+        gl.uniform1f(
+          display.uniforms.u_focus_y,
+          wrap.clientWidth < 768 ? focusYMobile ?? focusY : focusY,
+        );
         gl.uniform3f(
           display.uniforms.u_pad_color,
           parseInt(padColor.slice(1, 3), 16) / 255,
@@ -629,7 +644,18 @@ export default function LiquidHero({
       window.removeEventListener("resize", onResize);
       ro.disconnect();
     };
-  }, [src, resolution, cursorSize, cursorPower, distortionPower, zoom, fit, padColor]);
+  }, [
+    src,
+    resolution,
+    cursorSize,
+    cursorPower,
+    distortionPower,
+    zoom,
+    fit,
+    padColor,
+    focusY,
+    focusYMobile,
+  ]);
 
   return (
     <div
