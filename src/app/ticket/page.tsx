@@ -94,7 +94,11 @@ const glassBtn = (tone: keyof typeof GLASS_TONE = "sky") =>
 
 export default function SwimPage() {
   const [sessions, setSessions] = useState<SwimSessionT[]>([]);
-  const [me, setMe] = useState<{ role?: string } | null>(null);
+  const [me, setMe] = useState<{
+    role?: string;
+    membership?: string;
+    approvalStatus?: string;
+  } | null>(null);
   const [cardMsg, setCardMsg] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
   // 명단 대시보드 (모두 공개 — 이름만)
@@ -125,6 +129,9 @@ export default function SwimPage() {
 
   // 임원진(executive)·관리자(admin) 둘 다 운영 도구를 쓴다. 서버도 같은 기준으로 검사한다.
   const isAdmin = me?.role === "executive" || me?.role === "admin";
+  // 신청은 '승인된 재학생'만. 서버가 403으로 막지만 버튼도 숨겨 헛클릭을 줄인다.
+  const isApproved = me?.approvalStatus === "approved";
+  const canJoin = me?.membership === "student" && isApproved;
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -178,8 +185,12 @@ export default function SwimPage() {
 
   const fetchRoster = useCallback(async (sid: number) => {
     try {
+      // 토큰을 실어야 서버가 소속을 보고 실명을 내준다.
+      // (안 보내면 비로그인으로 취급되어 재학생·졸업생에게도 "***" 로 마스킹된다)
+      const token = localStorage.getItem("accessToken");
       const res = await fetch(`${API_URL}/api/swim/sessions/${sid}/roster`, {
         cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (res.ok) {
         const data = (await res.json()) as RosterT;
@@ -486,6 +497,17 @@ export default function SwimPage() {
             </p>
           </div>
 
+          {/* 신청이 안 되는 이유를 알려준다 (버튼만 사라지면 고장처럼 보임) */}
+          {me && !canJoin && (
+            <p className="mt-6 rounded-2xl bg-amber-500/15 px-4 py-3 text-center text-sm text-amber-900 ring-1 ring-inset ring-amber-300/50">
+              {!isApproved
+                ? "가입 신청이 접수되었습니다. 임원진 승인 후 정기수영을 신청할 수 있어요. 참석자 명단은 승인 전까지 가려집니다."
+                : me.membership === "alumni"
+                  ? "졸업생 계정은 일정만 확인할 수 있습니다. 신청은 재학생 부원만 가능해요."
+                  : "외부인 계정은 일정만 확인할 수 있습니다. 참석자 명단은 개인정보 보호를 위해 가려집니다."}
+            </p>
+          )}
+
           {/* ── 정기수영 열기 (관리자 전용 UI — 서버도 403으로 이중 방어) ── */}
           {isAdmin && (
             <div className="mt-10">
@@ -645,7 +667,7 @@ export default function SwimPage() {
             )}
 
             {sessions.map((s) => {
-              const canApply = s.status === "open" && !s.my;
+              const canApply = s.status === "open" && !s.my && canJoin;
               const startMs = new Date(s.applyStartAt).getTime();
               return (
                 <div key={s.id} className="glass rounded-3xl p-6">
@@ -688,7 +710,7 @@ export default function SwimPage() {
                             </span>
                           </div>
                           {/* 신청 버튼 — 오픈 전에도 계속 보이되 비활성 + 실시간 카운트다운 */}
-                          {(s.status === "upcoming" || s.status === "open") && !s.my && (
+                          {(s.status === "upcoming" || s.status === "open") && !s.my && canJoin && (
                             <button
                               type="button"
                               onClick={() => apply(s.id, div)}

@@ -16,6 +16,12 @@
 
 /* 앵커(스크롤 유도 시그널 등) 이동을 부드럽게 */
 html {
+  /* ⚠️ html에 background를 주지 말 것.
+     html에 배경이 없어야 body의 배경이 '문서 캔버스'로 전파되어 맨 뒤에 깔린다.
+     html에 색을 주면 전파가 끊겨 body가 자기 배경을 직접 그리고, 그것이
+     물결 배경(-z-10 fixed 래퍼)을 덮어버려 사진이 통째로 사라진다.
+     iOS에서 빈 영역이 흰색으로 보이는 문제는 body 배경의 마지막 linear-gradient(불투명
+     하늘색)가 전파되어 해결되고, Safari 툴바 영역은 metadata의 themeColor가 담당한다. */
   scroll-behavior: smooth;
   /* 섹션 단위 스냅. mandatory로 확실히 걸리게 하되, 뷰포트보다 큰 섹션(미니게임 등)은
      스펙상 스냅 영역이 snapport보다 커서 그 안에서는 자유 스크롤되어 갇히지 않는다. */
@@ -35,7 +41,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  min-height: 100vh;
+  /* 100vh는 iOS에서 툴바를 뺀 높이로 고정돼 스크롤 시 어긋난다. dvh는 실제 보이는 높이를 따라간다. */
+  min-height: 100dvh;
   /* 유리 뒤로 은은하게 비치는 컬러 블롭 + 밝은 그라데이션 (수영 테마).
      background-attachment는 backdrop-filter와 충돌하므로 사용하지 않는다. */
   background:
@@ -108,6 +115,56 @@ section h3 {
   }
   to {
     transform: translateY(0);
+  }
+}
+
+/* 히어로 스크롤 유도: 가는 세로선 안에서 밝은 조각이 위→아래로 흐른다.
+   통통 튀는 화살표보다 절제된 표현.
+
+   ⚠️ Tailwind v4에서는 애니메이션을 @theme 안에 선언해야 한다.
+   파일 최상단에 @keyframes만 써두면 animate-[...] 임의값으로 참조할 때
+   유틸리티 클래스만 생성되고 @keyframes 블록은 번들에서 빠진다. */
+@theme {
+  /* 히어로 제목: 글자마다 시차를 두고 위아래로 흔들린다(물결).
+     글자별 지연은 컴포넌트에서 animation-delay 로 준다. */
+  --animate-char-wave: char-wave 3.4s ease-in-out infinite;
+
+  @keyframes char-wave {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-0.09em);
+    }
+  }
+
+  /* 제목 옆 마크가 천천히 계속 회전 */
+  --animate-mark-spin: mark-spin 16s linear infinite;
+
+  @keyframes mark-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  --animate-scroll-hint: scroll-hint 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+
+  @keyframes scroll-hint {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    35% {
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(300%);
+      opacity: 0;
+    }
   }
 }
 

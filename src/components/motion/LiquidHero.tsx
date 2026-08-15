@@ -265,7 +265,13 @@ export default function LiquidHero({
       cursorPower: 5 + ((cursorPower - 0.1) * (50 - 5)) / (1 - 0.1),
       distortion: distortionPower,
     };
-    const SUPERSAMPLE = 1.2; // 캔버스를 살짝 오버스캔해 가장자리 왜곡을 감춤
+    // 캔버스를 살짝 오버스캔해 가장자리 왜곡을 감춘다.
+    // 모바일에서는 오버스캔을 거의 없앤다 — 화면 밖 픽셀까지 매 프레임 유체를 도는 비용이 크다.
+    const isSmall = () => window.innerWidth < 768;
+    const superSample = () => (isSmall() ? 1.04 : 1.2);
+    // 폰은 DPR이 3인 기종이 많아 그대로 두면 캔버스가 400만 픽셀에 육박한다.
+    // 배경(블러 위에 깔리는 물결)이라 1.5배면 육안 차이가 없고 픽셀 수는 절반 이하가 된다.
+    const maxDpr = () => (isSmall() ? 1.5 : 2);
 
     const pointer = { x: 0, y: 0, dx: 0, dy: 0, moved: false };
     let inside = false;
@@ -413,14 +419,22 @@ export default function LiquidHero({
       const w = wrap.clientWidth;
       const h = wrap.clientHeight;
       if (!w || !h) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(2, Math.round(w * SUPERSAMPLE * dpr));
-      canvas.height = Math.max(2, Math.round(h * SUPERSAMPLE * dpr));
-      canvas.style.width = `${w * SUPERSAMPLE}px`;
-      canvas.style.height = `${h * SUPERSAMPLE}px`;
+      const ss = superSample();
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr());
+      canvas.width = Math.max(2, Math.round(w * ss * dpr));
+      canvas.height = Math.max(2, Math.round(h * ss * dpr));
+      canvas.style.width = `${w * ss}px`;
+      canvas.style.height = `${h * ss}px`;
+      // 오버스캔한 만큼 좌·상으로 당겨 화면 중앙에 맞춘다.
+      // 이 값이 ss와 어긋나면 반대쪽에 빈 띠가 생긴다(JSX의 -10%는 ss=1.2 전용 초기값).
+      const off = ((ss - 1) / 2) * 100;
+      canvas.style.left = `${-off}%`;
+      canvas.style.top = `${-off}%`;
       const aspect = w / h;
       // 원본과 동일: 해상도 배율 1~10 → 격자 128~512
-      const base = 128 + ((resolution - 1) * (512 - 128)) / 9;
+      let base = 128 + ((resolution - 1) * (512 - 128)) / 9;
+      // 모바일은 시뮬레이션 격자도 한 단계 낮춘다 (압력 반복이 격자 크기에 비례해 무거워짐)
+      if (isSmall()) base = Math.max(128, base * 0.7);
       sim = { w: Math.round(base * aspect), h: Math.round(base) };
     }
     function initFBOs() {
@@ -432,8 +446,9 @@ export default function LiquidHero({
 
     // 컨테이너 좌표(0..1, 원점 좌하단) — 오버스캔 보정 포함
     function pointerUv() {
-      const ew = wrap.clientWidth * SUPERSAMPLE;
-      const eh = wrap.clientHeight * SUPERSAMPLE;
+      const ss = superSample();
+      const ew = wrap.clientWidth * ss;
+      const eh = wrap.clientHeight * ss;
       const ox = 0.5 * (ew - wrap.clientWidth);
       const oy = 0.5 * (eh - wrap.clientHeight);
       return { u: (pointer.x + ox) / ew, v: 1 - (pointer.y + oy) / eh };
@@ -544,7 +559,9 @@ export default function LiquidHero({
       blit(velocity.write());
       velocity.swap();
 
-      // advection ① 속도장 (dt, 감쇠 0.97)
+      // advection ① 속도장.
+      // 감쇠가 1에 가까울수록 흐름이 오래 살아남아 파동이 멀리까지 퍼진다.
+      // 0.94 → 0.975 (1초 뒤 잔량 2.5% → 22%)
       gl.useProgram(advection.program);
       gl.uniform2f(advection.uniforms.u_texel, velocity.texelX, velocity.texelY);
       gl.uniform2f(
@@ -558,19 +575,21 @@ export default function LiquidHero({
       );
       gl.uniform1i(advection.uniforms.u_input_texture, velocity.read().attach(1));
       gl.uniform1f(advection.uniforms.u_dt, dt);
-      gl.uniform1f(advection.uniforms.u_dissipation, 0.94);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.975);
       blit(velocity.write());
       velocity.swap();
 
-      // advection ② dye(offset) — 속도장 따라 8배 dt로 빠르게, 감쇠 0.98
+      // advection ② dye(offset) — 속도장을 따라 흐르는 '왜곡 크기' 필드.
+      // dt 배수를 올리면 더 빨리 번지고, 감쇠를 올리면 더 오래 남는다.
+      // 5배·0.95 → 6배·0.972
       gl.uniform2f(advection.uniforms.u_output_texel, dye.texelX, dye.texelY);
       gl.uniform1i(
         advection.uniforms.u_velocity_texture,
         velocity.read().attach(1),
       );
       gl.uniform1i(advection.uniforms.u_input_texture, dye.read().attach(2));
-      gl.uniform1f(advection.uniforms.u_dt, 5 * dt);
-      gl.uniform1f(advection.uniforms.u_dissipation, 0.95);
+      gl.uniform1f(advection.uniforms.u_dt, 6 * dt);
+      gl.uniform1f(advection.uniforms.u_dissipation, 0.972);
       blit(dye.write());
       dye.swap();
 
