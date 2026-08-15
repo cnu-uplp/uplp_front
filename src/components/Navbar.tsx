@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -48,6 +49,9 @@ export default function Navbar() {
   const [user, setUser] = useState<SessionUser | null>(null); // 로그인 유저(없으면 null)
   const [isStaff, setIsStaff] = useState(false); // 임원진 이상 여부 (서버 판정)
   const [pending, setPending] = useState(0);    // 승인 대기 인원 (임원진에게만)
+  // 서버 렌더 때는 document가 없어 portal을 못 만든다. 마운트 후에만 그린다.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // 로그인 상태 읽기 — 마운트 + 페이지 이동마다 (로그인 직후 홈으로 오면 인사 반영)
   useEffect(() => {
@@ -281,7 +285,15 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ── 모바일 드로어 (오른쪽 슬라이드) ───────────────── */}
+      {/* ── 모바일 드로어 (오른쪽 슬라이드) ─────────────────
+          ⚠️ 반드시 body로 portal 한다.
+          <header>가 `fixed z-50`이라 자체 쌓임 맥락을 만들고, 그 안에서는 z-[61]을 줘도
+          헤더 자신의 z-50 위로 못 올라간다. 그래서 backdrop-filter가 걸린 페이지 카드
+          (동아리 소개·부원 관리 등)가 드로어 위에 겹쳐 그려졌다. 홈은 위에 겹칠 것이
+          없어서 멀쩡해 보였을 뿐이다. 미니게임 팝업도 같은 이유로 portal 처리돼 있다. */}
+      {mounted &&
+        createPortal(
+          <>
       {/* 배경 딤 */}
       <div
         onClick={() => setOpen(false)}
@@ -381,6 +393,9 @@ export default function Navbar() {
         )}
         </div>
       </aside>
+          </>,
+          document.body,
+        )}
     </header>
   );
 }

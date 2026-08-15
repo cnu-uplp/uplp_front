@@ -40,10 +40,13 @@ type Props = {
   /** cover일 때 사진의 어느 높이를 화면 중앙에 둘지. 0.5 = 정중앙.
    *  낮출수록 사진의 아래쪽이 보인다(= 사진이 위로 올라가고 윗부분이 잘린다). */
   focusY?: number;
-  /** 좁은 화면(<768px)에서 쓸 focusY. 미지정 시 focusY와 같다.
-   *  세로로 긴 화면은 cover가 사진 '높이 전체'를 담아서 상단 워터마크까지 들어온다.
-   *  그래서 모바일만 초점을 더 내려 위쪽을 잘라낸다. */
+  /** 좁은 화면(<768px)에서 쓸 focusY. 미지정 시 focusY와 같다. */
   focusYMobile?: number;
+  /** 사진 위쪽에서 잘라내고 아예 쓰지 않을 비율 (0~0.3).
+   *  워터마크·로고처럼 어떤 화면에서도 보이면 안 되는 띠가 있을 때 쓴다.
+   *  세로로 긴 화면은 cover가 사진 높이를 통째로 담아 그 띠까지 들어오는데,
+   *  이 값을 주면 비율을 유지한 채 확대해서 잘라낸다(늘리지 않는다). */
+  cropTop?: number;
   /** contain일 때 남는 여백 색 (#rrggbb) */
   padColor?: string;
   className?: string;
@@ -187,6 +190,7 @@ const DISPLAY_FRAG = `
   uniform float u_zoom;        // 이미지 확대(크롭) 정도
   uniform float u_contain;     // 0 = cover(꽉 채움·크롭) / 1 = contain(사진 전체 보임)
   uniform float u_focus_y;     // cover일 때 화면 중앙에 둘 사진 높이 (낮을수록 아래쪽을 보여줌)
+  uniform float u_crop_top;    // 사진 위쪽에서 잘라내고 쓰지 않을 비율 (워터마크 영역)
   uniform vec3 u_pad_color;    // contain일 때 남는 여백 색
   uniform sampler2D u_output_texture; // dye(offset), .r
   uniform sampler2D u_velocity;
@@ -203,7 +207,21 @@ const DISPLAY_FRAG = `
       else s.x = u_ratio / u_img_ratio;
     }
     s *= u_zoom;                           // 살짝 확대해 밋밋한 가장자리를 크롭 (1 = 확대 없음)
-    float cy = u_contain > 0.5 ? 0.5 : u_focus_y; // contain은 정중앙, cover는 초점을 살짝 아래로
+
+    if (u_contain > 0.5) return (uv - 0.5) * s + vec2(0.5, 0.5);  // contain은 정중앙
+
+    // ── cover: 사진 위쪽 u_crop_top 만큼을 버리고 [u_crop_top, 1] 구간만 쓴다 ──
+    //
+    // 초점(cy)만 내리면 아래쪽 샘플 좌표가 1을 넘어가고, 텍스처가 CLAMP_TO_EDGE라
+    // 맨 아랫줄 픽셀이 세로로 늘어나 줄무늬가 생긴다. 그래서 '내리기'가 아니라
+    // '확대해서 잘라내기'로 처리한다 — 창이 구간보다 크면 비율을 유지한 채 축소(=확대)한다.
+    float band = 1.0 - u_crop_top;         // 쓸 수 있는 세로 구간의 높이
+    if (s.y > band) s *= band / s.y;       // x·y를 같은 비율로 줄여야 사진이 안 찌그러진다
+
+    // 샘플 좌표 t = 1 - uvY. 창의 t 범위는 [1-cy-s.y/2, 1-cy+s.y/2].
+    // 이 범위가 [u_crop_top, 1] 안에 있으려면 cy 는 아래 두 값 사이여야 한다.
+    float halfH = 0.5 * s.y;
+    float cy = clamp(u_focus_y, halfH, 1.0 - u_crop_top - halfH);
     return (uv - 0.5) * s + vec2(0.5, cy);
   }
   void main () {
@@ -233,6 +251,7 @@ export default function LiquidHero({
   fit = "cover",
   focusY = 0.44,
   focusYMobile,
+  cropTop = 0,
   padColor = "#eaf4ff",
   className,
 }: Props) {
@@ -616,6 +635,7 @@ export default function LiquidHero({
           display.uniforms.u_focus_y,
           wrap.clientWidth < 768 ? focusYMobile ?? focusY : focusY,
         );
+        gl.uniform1f(display.uniforms.u_crop_top, cropTop);
         gl.uniform3f(
           display.uniforms.u_pad_color,
           parseInt(padColor.slice(1, 3), 16) / 255,
@@ -655,6 +675,7 @@ export default function LiquidHero({
     padColor,
     focusY,
     focusYMobile,
+    cropTop,
   ]);
 
   return (
