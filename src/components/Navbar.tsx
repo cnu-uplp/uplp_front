@@ -14,6 +14,8 @@ type SessionUser = { nickname?: string; name?: string };
 // (설령 메뉴를 억지로 띄워도 /api/users 가 403을 낸다.)
 const STAFF_ITEM = { href: "/members", label: "부원 관리" };
 const STAFF_ROLES = ["executive", "admin"];
+// 온보딩 강제에서 제외할 경로 — 여기서까지 되돌리면 무한 리다이렉트가 된다.
+const ONBOARDING_EXEMPT = ["/onboarding", "/login"];
 
 // 상단바 유리 버튼 — 배경 사진 위든 유리 네비 위든 같은 모양으로 둔다.
 //
@@ -73,8 +75,18 @@ export default function Navbar() {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((me) => {
+        if (!alive || !me) return;
+        // 가입 정보를 다 안 넣은 사람은 어느 페이지에 있든 온보딩으로 되돌린다.
+        // 온보딩 화면에 '건너뛰기'를 두지 않는 것만으로는, 주소를 직접 쳐서
+        // 빠져나가는 경로가 남는다. 실명·학번이 없으면 대관 명단도 승인 판단도 불가능하다.
+        if (!me.name || !me.admissionYear) {
+          if (!ONBOARDING_EXEMPT.some((p) => pathname.startsWith(p))) {
+            router.replace("/onboarding/phone");
+          }
+          return;
+        }
         const staff = STAFF_ROLES.includes(me?.role);
-        if (alive) setIsStaff(staff);
+        setIsStaff(staff);
         if (!staff) return;
         // 승인 대기 인원 — 배지가 없으면 임원진이 대기자를 모른 채 방치하게 된다.
         return fetch(`${API_URL}/api/users/pending-count`, {
@@ -91,7 +103,7 @@ export default function Navbar() {
     return () => {
       alive = false;
     };
-  }, [pathname]);
+  }, [pathname, router]);
 
   function logout() {
     localStorage.removeItem("accessToken");
