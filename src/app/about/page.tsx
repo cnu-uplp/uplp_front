@@ -45,9 +45,19 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* 본문은 임원진이 웹에서 직접 고친다. 섹션이 없으면 위 기본 안내가 나온다. */}
+          {/* 본문은 임원진이 웹에서 직접 고친다. 섹션이 없으면 위 기본 안내가 나오고,
+              임원진은 '기존 내용 가져와서 편집하기'로 그 4개를 그대로 섹션화할 수 있다
+              (1/2 폭 4개 = 2x2 — 지금 보이는 배치와 같다). */}
           <div className="mt-12">
-            <EditableSections page="about" fallback={<DefaultIntro />} />
+            <EditableSections
+              page="about"
+              fallback={<DefaultIntro />}
+              seed={INFO.map((i) => ({
+                title: i.title,
+                body: i.desc,
+                width: "half" as const,
+              }))}
+            />
           </div>
         </div>
       </GlassCard>
