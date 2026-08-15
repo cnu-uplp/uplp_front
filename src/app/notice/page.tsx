@@ -14,6 +14,7 @@ type NoticeT = {
   body: string | null;
   eventDate: string | null;
   pinned: boolean;
+  imageUrl: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -62,6 +63,8 @@ export default function NoticePage() {
   const [body, setBody] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [pinned, setPinned] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");   // 업로드 후 받은 "/uploads/..."
+  const [uploading, setUploading] = useState(false);
 
   const fetchNotices = useCallback(async () => {
     try {
@@ -98,6 +101,7 @@ export default function NoticePage() {
     setBody("");
     setEventDate("");
     setPinned(false);
+    setImageUrl("");
   }
 
   function startCreate() {
@@ -113,8 +117,39 @@ export default function NoticePage() {
     setBody(n.body ?? "");
     setEventDate(n.eventDate ?? "");
     setPinned(n.pinned);
+    setImageUrl(n.imageUrl ?? "");
     setShowForm(true);
     setMsg("");
+  }
+
+  /** 파일을 고르는 즉시 올리고 경로만 폼에 들고 있는다.
+   *  글 저장과 함께 올리면 저장이 느려지고, 실패했을 때 뭐가 실패한 건지 알기 어렵다. */
+  async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setMsg("");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${API_URL}/api/notices/image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,   // Content-Type은 브라우저가 boundary와 함께 자동으로 넣는다
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "이미지 업로드에 실패했습니다.");
+      }
+      const { url } = await res.json();
+      setImageUrl(url);
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";   // 같은 파일을 다시 골라도 change가 걸리게
+    }
   }
 
   async function submitForm(e: React.FormEvent) {
@@ -138,6 +173,7 @@ export default function NoticePage() {
         body: body.trim(),
         eventDate: category === "schedule" ? eventDate : "",
         pinned,
+        imageUrl,   // 빈 문자열이면 서버가 '이미지 제거'로 처리한다
       };
       const res = await fetch(
         editingId ? `${API_URL}/api/notices/${editingId}` : `${API_URL}/api/notices`,
@@ -275,6 +311,41 @@ export default function NoticePage() {
                   placeholder="자세한 내용을 적어주세요."
                   className={`${inputClass} resize-y`}
                 />
+              </div>
+
+              {/* 이미지 첨부 — 한 장. 고르면 바로 올라가고 경로만 폼에 들고 있는다 */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-800">
+                  이미지 (선택)
+                </label>
+                {imageUrl ? (
+                  <div className="flex items-start gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`${API_URL}${imageUrl}`}
+                      alt="첨부 이미지 미리보기"
+                      className="h-24 w-24 rounded-xl object-cover ring-1 ring-white/60"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className={glassBtn("slate")}
+                    >
+                      이미지 제거
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={uploadImage}
+                    className="w-full text-sm text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-sky-500/25 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sky-900 hover:file:bg-sky-500/35"
+                  />
+                )}
+                <p className="mt-1.5 text-xs text-slate-600">
+                  {uploading ? "업로드 중…" : "jpg · png · gif · webp, 5MB 이하"}
+                </p>
               </div>
 
               <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
@@ -416,10 +487,23 @@ export default function NoticePage() {
                       </div>
                     </div>
 
-                    {open && n.body && (
-                      <p className="whitespace-pre-wrap px-6 pb-5 text-sm leading-relaxed text-slate-800">
-                        {n.body}
-                      </p>
+                    {open && (
+                      <div className="px-6 pb-5">
+                        {n.body && (
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+                            {n.body}
+                          </p>
+                        )}
+                        {n.imageUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`${API_URL}${n.imageUrl}`}
+                            alt={n.title}
+                            className="mt-4 max-h-[28rem] w-full rounded-2xl object-contain ring-1 ring-white/50"
+                          />
+                        )}
+                        <Comments noticeId={n.id} />
+                      </div>
                     )}
                   </li>
                 );
@@ -428,6 +512,147 @@ export default function NoticePage() {
           )}
         </div>
       </GlassCard>
+    </div>
+  );
+}
+
+type CommentT = {
+  id: number;
+  body: string;
+  author: string | null;
+  authorId: number | null;
+  createdAt: string | null;
+};
+
+/**
+ * 공지 하나에 달린 댓글 목록 + 작성 폼.
+ *
+ * 글을 펼칠 때만 마운트되므로, 목록 화면에서 공지 수만큼 요청이 나가지 않는다.
+ * 읽기는 누구나, 쓰기는 승인된 회원만(서버가 403으로 막고 여기선 안내만 한다).
+ */
+function Comments({ noticeId }: { noticeId: number }) {
+  const [items, setItems] = useState<CommentT[]>([]);
+  const [text, setText] = useState("");
+  const [me, setMe] = useState<{ id?: number; role?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/notices/${noticeId}/comments`);
+      if (res.ok) setItems(await res.json());
+    } catch {
+      /* 목록만 비어 보이면 되므로 조용히 넘어간다 */
+    }
+  }, [noticeId]);
+
+  useEffect(() => {
+    load();
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    fetch(`${API_URL}/api/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setMe)
+      .catch(() => setMe(null));
+  }, [load]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || !text.trim()) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(`${API_URL}/api/notices/${noticeId}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ body: text.trim() }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || "댓글을 남기지 못했습니다.");
+      }
+      setText("");
+      await load();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "댓글을 남기지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(c: CommentT) {
+    if (!window.confirm("댓글을 지울까요?")) return;
+    const token = localStorage.getItem("accessToken");
+    await fetch(`${API_URL}/api/notices/${noticeId}/comments/${c.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    await load();
+  }
+
+  const canDelete = (c: CommentT) =>
+    me?.id === c.authorId || me?.role === "executive" || me?.role === "admin";
+
+  return (
+    <div className="mt-5 border-t border-white/50 pt-4">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        댓글 {items.length}
+      </p>
+
+      <ul className="space-y-3">
+        {items.map((c) => (
+          <li key={c.id} className="rounded-2xl bg-white/45 px-4 py-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm font-semibold text-slate-900">{c.author}</span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="text-xs text-slate-500">{formatDate(c.createdAt)}</span>
+                {canDelete(c) && (
+                  <button
+                    type="button"
+                    onClick={() => remove(c)}
+                    className="text-xs text-slate-500 transition hover:text-red-600"
+                  >
+                    삭제
+                  </button>
+                )}
+              </span>
+            </div>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{c.body}</p>
+          </li>
+        ))}
+        {items.length === 0 && (
+          <li className="text-sm text-slate-500">아직 댓글이 없습니다.</li>
+        )}
+      </ul>
+
+      {me ? (
+        <form onSubmit={submit} className="mt-3 flex gap-2">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="댓글 남기기"
+            maxLength={1000}
+            className="flex-1 rounded-full border border-white/60 bg-white/70 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+          />
+          <button
+            type="submit"
+            disabled={busy || !text.trim()}
+            className={`${glassBtn("sky")} disabled:opacity-40`}
+          >
+            {busy ? "등록 중…" : "등록"}
+          </button>
+        </form>
+      ) : (
+        <p className="mt-3 text-sm text-slate-500">
+          댓글을 남기려면 로그인이 필요합니다.
+        </p>
+      )}
+
+      {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
     </div>
   );
 }
