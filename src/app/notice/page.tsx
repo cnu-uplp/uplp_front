@@ -406,14 +406,18 @@ export default function NoticePage() {
                 const open = openId === n.id;
                 return (
                   <li key={n.id} className="transition-colors hover:bg-white/40">
-                    <div className="flex items-center justify-between gap-4 px-6 py-5">
+                    {/* 모바일은 두 줄로 나눈다.
+                        한 줄에 배지·📌·제목·날짜·아이콘을 다 넣으면 제목이 먼저 잘려서
+                        정작 무슨 글인지가 안 보인다. 좁은 화면에서는
+                        (윗줄) 배지 + 제목 / (아랫줄) 날짜 + 관리 버튼 으로 쌓는다. */}
+                    <div className="flex flex-col gap-2 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                       <button
                         type="button"
                         onClick={() => setOpenId(open ? null : n.id)}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        className="flex min-w-0 flex-1 items-start gap-2.5 text-left sm:items-center sm:gap-3"
                       >
                         <span
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                          className={`mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset sm:mt-0 ${
                             n.category === "schedule"
                               ? "bg-indigo-500/20 text-indigo-900 ring-indigo-300/60"
                               : "bg-sky-500/20 text-sky-900 ring-sky-300/60"
@@ -423,19 +427,20 @@ export default function NoticePage() {
                         </span>
                         {n.pinned && (
                           <span
-                            className="shrink-0 text-amber-600"
+                            className="mt-0.5 shrink-0 text-amber-600 sm:mt-0"
                             title="고정된 글"
                             aria-label="고정된 글"
                           >
                             📌
                           </span>
                         )}
-                        <span className="truncate font-medium text-slate-900">
+                        {/* 모바일은 제목을 두 줄까지 펼쳐 보여주고, 데스크톱은 한 줄로 자른다 */}
+                        <span className="line-clamp-2 min-w-0 font-medium text-slate-900 sm:truncate">
                           {n.title}
                         </span>
                       </button>
 
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex shrink-0 items-center gap-2 pl-[3.25rem] sm:pl-0">
                         <span className="text-sm text-slate-700">
                           {n.eventDate ?? formatDate(n.createdAt)}
                         </span>
