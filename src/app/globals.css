@@ -37,13 +37,18 @@ html {
   scroll-snap-align: start;
 }
 
-/* ── iOS Safari 입력 대응 ────────────────────────────────────────────
-   ① 글자 크기가 16px 미만인 입력칸을 누르면 Safari가 화면을 자동 확대한다.
-      확대되면 레이아웃이 오른쪽으로 밀려 카드가 잘려 보이고, 스크롤 위치도 튄다.
-      좁은 화면에서만 16px로 올려 확대 자체를 막는다(디자인은 sm 이상에서 그대로).
-   ② 키보드가 올라오면 보이는 높이가 줄어드는데, mandatory 스냅이 그 순간
-      가까운 스냅 지점으로 다시 붙어서 엉뚱한 섹션으로 점프한다.
-      입력 중에는(:focus-within) 스냅을 꺼서 제자리에 머물게 한다. */
+/* ── 모바일(좁은 화면) 대응 ──────────────────────────────────────────
+   ① 글자 크기가 16px 미만인 입력칸을 누르면 iOS Safari가 화면을 자동 확대한다.
+      확대되면 레이아웃이 밀려 카드가 잘려 보이고 스크롤 위치도 튄다.
+      좁은 화면에서만 16px로 올려 확대 자체를 막는다(sm 이상은 기존 디자인 그대로).
+
+   ② 스크롤 스냅은 모바일에서 끈다.
+      휴대폰은 보이는 높이가 계속 변한다 — 주소창이 접혔다 펴지고, 키보드가 올라왔다
+      내려간다. 그때마다 mandatory 스냅이 '가장 가까운 섹션'으로 다시 붙어서 화면이
+      엉뚱한 곳으로 끌려간다. 특히 입력 후 전송을 누르면 포커스가 빠지며 키보드가
+      닫히는데, 바로 그 순간 다른 섹션으로 점프했다.
+      focus 중에만 스냅을 끄는 방식으로는 이걸 못 막는다 — 문제는 focus가 '빠질 때'
+      일어나기 때문이다. 그래서 좁은 화면에서는 스냅 자체를 두지 않는다. */
 @media (max-width: 767px) {
   input,
   select,
@@ -51,10 +56,33 @@ html {
     font-size: 16px;
   }
 
-  html:has(input:focus, textarea:focus, select:focus) {
+  html {
     scroll-snap-type: none;
-    scroll-behavior: auto;
   }
+
+  #explore > section,
+  #explore > footer {
+    scroll-snap-align: none;
+  }
+
+  /* ③ iOS의 날짜·시각 입력은 기본 렌더링(-webkit-appearance)이 고유 너비를 들고 있어
+     width:100% 를 줘도 칸이 줄지 않고 카드 밖으로 삐져나간다.
+     기본 렌더링을 끄면 그때부터 지정한 너비를 따른다(달력 피커는 그대로 열린다). */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* 어떤 경우에도 페이지가 가로로 밀리지 않게 한다.
+   한 요소가 넘치면 화면 전체가 좌우로 흔들려 스크롤이 어긋난다. */
+html,
+body {
+  overflow-x: clip;
 }
 
 body {
