@@ -38,7 +38,7 @@ export default function Footer() {
               <span>🏊</span> UPLP SWIM
             </div>
             <p className="mt-2 text-sm text-white/60">
-              충남대학교 수영 동아리 · sayhi@uplpswim.com
+              충남대학교 수영 동아리 · uplp.swim@gmail.com
             </p>
           </div>
 

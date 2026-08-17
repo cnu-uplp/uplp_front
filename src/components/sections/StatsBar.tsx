@@ -5,7 +5,7 @@ const STATS = [
   { value: "60+", label: "활동 부원", desc: "초보부터 마스터즈까지" },
   { value: "1.2만", label: "누적 훈련 랩", desc: "함께 채운 물살" },
   { value: "12", label: "참가 대회", desc: "대학 연합 대회" },
-  { value: "8", label: "활동 기수", desc: "2019년부터" },
+  { value: "10", label: "활동 기수", desc: "2017년부터" },
 ];
 
 export default function StatsBar() {
