@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import OnboardingGate from "@/components/OnboardingGate";
+import SessionExpiryGuard from "@/components/SessionExpiryGuard";
 import LiquidHero from "@/components/motion/LiquidHero";
 import "./globals.css";
 
@@ -76,6 +77,8 @@ export default function RootLayout({
         {/* 가입 정보를 안 넣은 회원을 어느 페이지에서든 모달로 막는다.
             정보가 다 있으면 아무것도 렌더하지 않는다. */}
         <OnboardingGate />
+        {/* 토큰 만료(401)를 잡아 안내하고 로그인 화면으로 보낸다 */}
+        <SessionExpiryGuard />
       </body>
     </html>
   );
