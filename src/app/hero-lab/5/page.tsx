@@ -180,7 +180,7 @@ export default function HeroLab5() {
                 </p>
               </div>
               <div className="space-y-1.5 text-[8px] uppercase tracking-[0.2em] text-slate-600">
-                <p>화 · 목 19:00</p>
+                <p>수 · 토 19:00</p>
                 <p>충남대 실내수영장</p>
                 <p>초급 — 마스터즈</p>
               </div>

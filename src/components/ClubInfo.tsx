@@ -9,7 +9,7 @@ type Item = { id: number; title: string | null; body: string; sortOrder: number 
 
 /** 코드에 박혀 있던 기본값. 아직 아무것도 등록하지 않았을 때 이 값이 보인다. */
 export const DEFAULT_INFO = [
-  { title: "활동", body: "매주 화 · 목 19:00" },
+  { title: "활동", body: "매주 수 · 토 19:00" },
   { title: "장소", body: "충남대학교 실내수영장" },
   { title: "대상", body: "초급부터 마스터즈까지" },
   { title: "회비", body: "학기당 5만원 (강습비 별도)" },
