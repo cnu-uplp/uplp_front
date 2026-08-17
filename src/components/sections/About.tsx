@@ -4,7 +4,7 @@ import TextReveal from "@/components/motion/TextReveal";
 import { Reveal, RevealGroup, RevealItem } from "@/components/motion/Reveal";
 
 const STATS = [
-  { value: "2019", label: "창단 연도" },
+  { value: "2017", label: "창단 연도" },
   { value: "60+", label: "활동 부원" },
   { value: "연 5회", label: "대회 참가" },
 ];

@@ -36,7 +36,14 @@ export default function SessionExpiryGuard() {
           : args[0] instanceof Request
             ? args[0].url
             : String(args[0]);
-      if (res.status !== 401 || !API_URL || !url.startsWith(API_URL)) return res;
+      if (!API_URL || !url.startsWith(API_URL)) return res;
+
+      // 서버가 유효기간을 밀어주며 새 토큰을 함께 내려보낸다(슬라이딩 만료).
+      // 401 검사보다 위에 둔다 — 아래에 두면 정상 응답이 먼저 return돼서 실행되지 않는다.
+      const fresh = res.headers.get("X-Refreshed-Token");
+      if (fresh) localStorage.setItem("accessToken", fresh);
+
+      if (res.status !== 401) return res;
 
       // 애초에 로그인한 적이 없으면 '만료'가 아니다 — 비로그인 상태로 둘러보는 중일 뿐
       if (!localStorage.getItem("accessToken")) return res;
