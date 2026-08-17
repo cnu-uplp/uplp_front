@@ -2,7 +2,7 @@ import SectionLabel from "./SectionLabel";
 import { RevealGroup, RevealItem } from "@/components/motion/Reveal";
 
 const HISTORY = [
-  { year: "2019", event: "UPLP 수영 동아리 창단" },
+  { year: "2017", event: "UPLP 수영 동아리 창단" },
   { year: "2021", event: "첫 대학 연합 대회 참가" },
   { year: "2023", event: "부원 50명 돌파 · 수준별 강습 도입" },
   { year: "2025", event: "연합 대회 계영 부문 입상" },

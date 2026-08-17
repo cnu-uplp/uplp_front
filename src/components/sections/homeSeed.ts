@@ -14,7 +14,7 @@ export const HOME_SEED = [
     width: "full" as const,
     body: `물살을 가르는 즐거움을 나누는 대학 수영 커뮤니티, UPLP.
 
-- **창단** 2019년
+- **창단** 2017년
 - **활동 부원** 76명
 - **대회 참가** 연 5회`,
   },
@@ -56,7 +56,7 @@ export const HOME_SEED = [
   {
     title: "연혁",
     width: "half" as const,
-    body: `- **2019** UPLP 수영 동아리 창단
+    body: `- **2017** UPLP 수영 동아리 창단
 - **2021** 첫 대학 연합 대회 참가
 - **2023** 부원 50명 돌파 · 수준별 강습 도입
 - **2025** 연합 대회 계영 부문 입상
